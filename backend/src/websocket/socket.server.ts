@@ -46,59 +46,61 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
   });
 
   // ── Authentication Middleware ────────────────────────────────────────────
-  io.use(async (socket, next) => {
-    try {
-      const token =
-        (socket.handshake.auth as Record<string, string>)['token'] ??
-        socket.handshake.headers['authorization']?.replace('Bearer ', '');
-
-      if (!token) {
-        return next(new Error('Authentication token required'));
-      }
-
-      let payload: JwtAccessPayload;
+  io.use((socket, next) => {
+    void (async () => {
       try {
-        payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
-      } catch {
-        return next(new Error('Invalid or expired token'));
+        const token =
+          (socket.handshake.auth as Record<string, string>)['token'] ??
+          socket.handshake.headers['authorization']?.replace('Bearer ', '');
+
+        if (!token) {
+          return next(new Error('Authentication token required'));
+        }
+
+        let payload: JwtAccessPayload;
+        try {
+          payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
+        } catch {
+          return next(new Error('Invalid or expired token'));
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { id: payload.sub },
+          select: { id: true, status: true },
+        });
+
+        if (!user || user.status !== 'ACTIVE') {
+          return next(new Error('Account not found or suspended'));
+        }
+
+        const organizationId =
+          (socket.handshake.auth as Record<string, string>)['organizationId'] ?? '';
+
+        if (!organizationId) {
+          return next(new Error('organizationId required in handshake auth'));
+        }
+
+        // Verify membership
+        const membership = await prisma.organizationMember.findUnique({
+          where: { organizationId_userId: { organizationId, userId: user.id } },
+          select: { role: true },
+        });
+
+        if (!membership) {
+          return next(new Error('Not a member of this organization'));
+        }
+
+        (socket as AuthenticatedSocket).data.user = {
+          userId: user.id,
+          organizationId,
+        };
+
+        next();
+      } catch (err) {
+        logger.error({ err }, 'Socket authentication error');
+        next(new Error('Authentication failed'));
       }
-
-      const user = await prisma.user.findUnique({
-        where: { id: payload.sub },
-        select: { id: true, status: true },
-      });
-
-      if (!user || user.status !== 'ACTIVE') {
-        return next(new Error('Account not found or suspended'));
-      }
-
-      const organizationId =
-        (socket.handshake.auth as Record<string, string>)['organizationId'] ?? '';
-
-      if (!organizationId) {
-        return next(new Error('organizationId required in handshake auth'));
-      }
-
-      // Verify membership
-      const membership = await prisma.organizationMember.findUnique({
-        where: { organizationId_userId: { organizationId, userId: user.id } },
-        select: { role: true },
-      });
-
-      if (!membership) {
-        return next(new Error('Not a member of this organization'));
-      }
-
-      (socket as AuthenticatedSocket).data.user = {
-        userId: user.id,
-        organizationId,
-      };
-
-      next();
-    } catch (err) {
-      logger.error({ err }, 'Socket authentication error');
-      next(new Error('Authentication failed'));
-    }
+    })();
   });
 
   // ── Connection Handler ───────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access */
 import { Request, Response, NextFunction } from 'express';
 import { ZodSchema } from 'zod';
 import { ValidationError } from '@lib/errors';

@@ -53,7 +53,7 @@ const bootstrap = async (): Promise<void> => {
     logger.info({ signal }, 'Shutdown signal received — starting graceful shutdown');
 
     // Stop accepting new connections
-    httpServer.close(async () => {
+    httpServer.close(() => {
       logger.info('HTTP server closed');
     });
 

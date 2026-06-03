@@ -116,9 +116,8 @@ export class AuthService {
 
   private generateAccessToken(userId: string, email: string): string {
     const payload: JwtAccessPayload = { sub: userId, email };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const options: SignOptions = { expiresIn: config.auth.accessExpiresIn as any };
-    return jwt.sign(payload, config.auth.accessSecret, options);
+    const options = { expiresIn: config.auth.accessExpiresIn };
+    return jwt.sign(payload, config.auth.accessSecret, options as SignOptions);
   }
 
   private async generateAndStoreTokens(userId: string, email: string): Promise<TokenPair> {
@@ -126,9 +125,8 @@ export class AuthService {
 
     const tokenId = uuidv4();
     const refreshPayload: JwtRefreshPayload = { sub: userId, tokenId };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const refreshOptions: SignOptions = { expiresIn: config.auth.refreshExpiresIn as any };
-    const refreshToken = jwt.sign(refreshPayload, config.auth.refreshSecret, refreshOptions);
+    const refreshOptions = { expiresIn: config.auth.refreshExpiresIn };
+    const refreshToken = jwt.sign(refreshPayload, config.auth.refreshSecret, refreshOptions as SignOptions);
 
     const decoded = jwt.decode(refreshToken) as { exp: number };
     const expiresAt = new Date(decoded.exp * 1000);

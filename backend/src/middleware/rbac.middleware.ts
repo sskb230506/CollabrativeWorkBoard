@@ -7,60 +7,62 @@ import { OrganizationMembership, OrganizationRole } from '@appTypes';
 // Tenant Resolution Middleware
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const resolveTenant = async (
+export const resolveTenant = (
   req: Request,
   _res: Response,
   next: NextFunction,
-): Promise<void> => {
-  try {
-    if (!req.user) {
-      throw new UnauthorizedError('Authentication required before tenant resolution');
-    }
+): void => {
+  void (async () => {
+    try {
+      if (!req.user) {
+        throw new UnauthorizedError('Authentication required before tenant resolution');
+      }
 
-    const organizationId =
-      (req.params['organizationId'] as string | undefined) ??
-      (req.headers['x-organization-id'] as string | undefined);
+      const organizationId =
+        req.params['organizationId'] ??
+        (req.headers['x-organization-id'] as string | undefined);
 
-    if (!organizationId) {
-      throw new ForbiddenError('Organization context required');
-    }
+      if (!organizationId) {
+        throw new ForbiddenError('Organization context required');
+      }
 
-    const org = await prisma.organization.findUnique({
-      where: { id: organizationId },
-      select: { id: true },
-    });
+      const org = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { id: true },
+      });
 
-    if (!org) {
-      throw new NotFoundError('Organization');
-    }
+      if (!org) {
+        throw new NotFoundError('Organization');
+      }
 
-    const membership = await prisma.organizationMember.findUnique({
-      where: {
-        organizationId_userId: {
-          organizationId,
-          userId: req.user.id,
+      const membership = await prisma.organizationMember.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: req.user.id,
+          },
         },
-      },
-      select: { organizationId: true, userId: true, role: true },
-    });
+        select: { organizationId: true, userId: true, role: true },
+      });
 
-    if (!membership) {
-      throw new ForbiddenError('You are not a member of this organization');
+      if (!membership) {
+        throw new ForbiddenError('You are not a member of this organization');
+      }
+
+      const orgMembership: OrganizationMembership = {
+        organizationId: membership.organizationId,
+        userId: membership.userId,
+        role: membership.role as OrganizationRole,
+      };
+
+      req.organizationId = organizationId;
+      req.membership = orgMembership;
+
+      next();
+    } catch (err) {
+      next(err);
     }
-
-    const orgMembership: OrganizationMembership = {
-      organizationId: membership.organizationId,
-      userId: membership.userId,
-      role: membership.role as OrganizationRole,
-    };
-
-    req.organizationId = organizationId;
-    req.membership = orgMembership;
-
-    next();
-  } catch (err) {
-    next(err);
-  }
+  })();
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

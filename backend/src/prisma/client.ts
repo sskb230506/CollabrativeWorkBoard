@@ -37,13 +37,17 @@ if (isDev) {
   globalThis.__prisma = prisma;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(prisma as any).$on('warn', (e: { message: string }) => {
+interface PrismaWithEvents {
+  $on(event: 'warn' | 'error', cb: (e: { message: string }) => void): void;
+}
+
+const prismaWithEvents = prisma as unknown as PrismaWithEvents;
+
+prismaWithEvents.$on('warn', (e) => {
   logger.warn({ message: e.message }, 'Prisma warning');
 });
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(prisma as any).$on('error', (e: { message: string }) => {
+prismaWithEvents.$on('error', (e) => {
   logger.error({ message: e.message }, 'Prisma error');
 });
 

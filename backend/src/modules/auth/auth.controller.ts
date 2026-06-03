@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { sendSuccess, sendCreated, asyncHandler } from '@lib/api.helpers';
+import { RegisterInput, LoginInput } from './auth.schema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth Controller
@@ -18,12 +19,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   register = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.authService.register(req.body);
+    const result = await this.authService.register(req.body as RegisterInput);
     return sendCreated(res, result, 'Account created successfully');
   });
 
   login = asyncHandler(async (req: Request, res: Response) => {
-    const result = await this.authService.login(req.body);
+    const result = await this.authService.login(req.body as LoginInput);
     return sendSuccess(res, result, 200, 'Login successful');
   });
 
@@ -45,8 +46,8 @@ export class AuthController {
     return sendSuccess(res, null, 200, 'Logged out from all devices');
   });
 
-  me = asyncHandler(async (req: Request, res: Response) => {
+  me = asyncHandler((req: Request, res: Response) => {
     // req.user already attached by authenticate middleware — no service call needed
-    return sendSuccess(res, req.user);
+    return Promise.resolve(sendSuccess(res, req.user));
   });
 }

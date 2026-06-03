@@ -42,7 +42,7 @@ export const sendSuccess = <T>(
   statusCode = StatusCodes.OK,
   message?: string,
   meta?: PaginationMeta,
-): Response<ApiSuccessResponse<T>> => {
+): Response => {
   return res.status(statusCode).json({
     success: true,
     ...(message && { message }),
@@ -55,7 +55,7 @@ export const sendCreated = <T>(
   res: Response,
   data: T,
   message = 'Created successfully',
-): Response<ApiSuccessResponse<T>> => {
+): Response => {
   return sendSuccess(res, data, StatusCodes.CREATED, message);
 };
 

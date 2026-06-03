@@ -5,6 +5,7 @@
 // ── Express Request augmentation ─────────────────────────────────────────────
 // Extends the Express Request type so every controller has typed access to
 // the authenticated user and the resolved tenant (organization).
+/* eslint-disable @typescript-eslint/no-namespace */
 declare global {
   namespace Express {
     interface Request {

@@ -31,18 +31,29 @@ export const requestLogger = pinoHttp({
     return 'info';
   },
   serializers: {
-    req: (req) => ({
-      id: req.id,
-      method: req.method,
-      url: req.url,
-      // Never log Authorization headers
-      headers: {
-        'content-type': req.headers['content-type'],
-        'x-organization-id': req.headers['x-organization-id'],
-      },
-    }),
-    res: (res) => ({
-      statusCode: res.statusCode,
-    }),
+    req: (req: unknown) => {
+      const r = req as {
+        id: string;
+        method: string;
+        url: string;
+        headers: Record<string, string | string[] | undefined>;
+      };
+      return {
+        id: r.id,
+        method: r.method,
+        url: r.url,
+        // Never log Authorization headers
+        headers: {
+          'content-type': r.headers['content-type'],
+          'x-organization-id': r.headers['x-organization-id'],
+        },
+      };
+    },
+    res: (res: unknown) => {
+      const s = res as { statusCode: number };
+      return {
+        statusCode: s.statusCode,
+      };
+    },
   },
 });

@@ -17,52 +17,54 @@ import { JwtAccessPayload, AuthenticatedUser } from '@appTypes';
 // tokens + refresh token rotation.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const authenticate = async (
+export const authenticate = (
   req: Request,
   _res: Response,
   next: NextFunction,
-): Promise<void> => {
-  try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader?.startsWith('Bearer ')) {
-      throw new UnauthorizedError('Bearer token required');
-    }
-
-    const token = authHeader.slice(7); // strip "Bearer "
-
-    let payload: JwtAccessPayload;
+): void => {
+  void (async () => {
     try {
-      payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
-    } catch (err) {
-      if (err instanceof jwt.TokenExpiredError) {
-        throw new UnauthorizedError('Access token expired');
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader?.startsWith('Bearer ')) {
+        throw new UnauthorizedError('Bearer token required');
       }
-      throw new UnauthorizedError('Invalid access token');
+
+      const token = authHeader.slice(7); // strip "Bearer "
+
+      let payload: JwtAccessPayload;
+      try {
+        payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
+      } catch (err) {
+        if (err instanceof jwt.TokenExpiredError) {
+          throw new UnauthorizedError('Access token expired');
+        }
+        throw new UnauthorizedError('Invalid access token');
+      }
+
+      // Verify the user still exists (handles account deletion / suspension)
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, name: true, avatarUrl: true, status: true },
+      });
+
+      if (!user || user.status !== 'ACTIVE') {
+        throw new UnauthorizedError('Account not found or suspended');
+      }
+
+      const authenticatedUser: AuthenticatedUser = {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      };
+
+      req.user = authenticatedUser;
+      next();
+    } catch (err) {
+      next(err);
     }
-
-    // Verify the user still exists (handles account deletion / suspension)
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, email: true, name: true, avatarUrl: true, status: true },
-    });
-
-    if (!user || user.status !== 'ACTIVE') {
-      throw new UnauthorizedError('Account not found or suspended');
-    }
-
-    const authenticatedUser: AuthenticatedUser = {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      avatarUrl: user.avatarUrl,
-    };
-
-    req.user = authenticatedUser;
-    next();
-  } catch (err) {
-    next(err);
-  }
+  })();
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,31 +72,33 @@ export const authenticate = async (
 // Used for public endpoints that behave differently for authenticated users.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const optionalAuthenticate = async (
+export const optionalAuthenticate = (
   req: Request,
   _res: Response,
   next: NextFunction,
-): Promise<void> => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return next();
-  }
-
-  try {
-    const token = authHeader.slice(7);
-    const payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
-
-    const user = await prisma.user.findUnique({
-      where: { id: payload.sub },
-      select: { id: true, email: true, name: true, avatarUrl: true, status: true },
-    });
-
-    if (user && user.status === 'ACTIVE') {
-      req.user = { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl };
+): void => {
+  void (async () => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return next();
     }
-  } catch {
-    // Silently ignore invalid tokens for optional auth
-  }
 
-  next();
+    try {
+      const token = authHeader.slice(7);
+      const payload = jwt.verify(token, config.auth.accessSecret) as JwtAccessPayload;
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.sub },
+        select: { id: true, email: true, name: true, avatarUrl: true, status: true },
+      });
+
+      if (user && user.status === 'ACTIVE') {
+        req.user = { id: user.id, email: user.email, name: user.name, avatarUrl: user.avatarUrl };
+      }
+    } catch {
+      // Silently ignore invalid tokens for optional auth
+    }
+
+    next();
+  })();
 };

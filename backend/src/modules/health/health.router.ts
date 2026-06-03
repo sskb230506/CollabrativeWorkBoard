@@ -3,6 +3,8 @@ import { prisma } from '../../prisma/client';
 import { redis } from '@lib/redis';
 import { logger } from '@lib/logger';
 
+import { asyncHandler } from '@lib/api.helpers';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Health Router
 //
@@ -26,7 +28,7 @@ healthRouter.get('/', (_req: Request, res: Response): void => {
   });
 });
 
-healthRouter.get('/ready', async (_req: Request, res: Response): Promise<void> => {
+healthRouter.get('/ready', asyncHandler(async (_req: Request, res: Response): Promise<void> => {
   const checks: Record<string, 'ok' | 'error'> = {
     database: 'error',
     cache: 'error',
@@ -55,4 +57,4 @@ healthRouter.get('/ready', async (_req: Request, res: Response): Promise<void> =
     timestamp: new Date().toISOString(),
     checks,
   });
-});
+}));
