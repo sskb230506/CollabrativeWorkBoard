@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "dist",
+    "paths": {
+      "@/*": ["*"],
+      "@config/*": ["config/*"],
+      "@modules/*": ["modules/*"],
+      "@middleware/*": ["middleware/*"],
+      "@websocket/*": ["websocket/*"],
+      "@queue/*": ["queue/*"],
+      "@lib/*": ["lib/*"],
+      "@types/*": ["types/*"],
+      "@prisma/*": ["prisma/*"],
+      "@repositories/*": ["repositories/*"],
+      "@routes/*": ["routes/*"]
+    }
+  }
+}

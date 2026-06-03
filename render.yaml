@@ -1,0 +1,53 @@
+# render.yaml — Render Infrastructure as Code
+# Docs: https://render.com/docs/render-yaml-config
+#
+# Deploy this file to auto-configure your Render services.
+# Connect your GitHub repo to Render and it will read this file.
+
+services:
+  # ── Main API Web Service ──────────────────────────────────────────────────
+  - type: web
+    name: workboard-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    region: oregon
+    plan: starter  # Upgrade to standard for production (avoids cold starts)
+
+    # Render auto-detects PORT from the EXPOSE directive, but explicit is safer
+    healthCheckPath: /health
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: API_VERSION
+        value: v1
+      # Secrets — set these in the Render dashboard, not here
+      - key: DATABASE_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"

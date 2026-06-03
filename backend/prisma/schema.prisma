@@ -1,0 +1,290 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Prisma Schema — CollaborativeWorkBoard
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // Neon requires connection pooling via pgbouncer for serverless
+  directUrl = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum OrganizationRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum BoardVisibility {
+  PUBLIC
+  PRIVATE
+  ORGANIZATION
+}
+
+enum CardPriority {
+  NONE
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id             String     @id @default(uuid())
+  email          String     @unique
+  name           String
+  avatarUrl      String?
+  passwordHash   String
+  status         UserStatus @default(ACTIVE)
+  emailVerified  Boolean    @default(false)
+  refreshTokens  RefreshToken[]
+  memberships    OrganizationMember[]
+  assignedCards  CardAssignee[]
+  comments       Comment[]
+  activityLogs   ActivityLog[]
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────
+// ORGANIZATION (Tenant)
+// ─────────────────────────────────────────────
+
+model Organization {
+  id          String               @id @default(uuid())
+  name        String
+  slug        String               @unique
+  logoUrl     String?
+  members     OrganizationMember[]
+  boards      Board[]
+  invitations Invitation[]
+  activityLogs ActivityLog[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String           @id @default(uuid())
+  organizationId String
+  userId         String
+  role           OrganizationRole @default(MEMBER)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt       DateTime         @default(now())
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model Invitation {
+  id             String           @id @default(uuid())
+  organizationId String
+  email          String
+  role           OrganizationRole @default(MEMBER)
+  token          String           @unique @default(uuid())
+  expiresAt      DateTime
+  accepted       Boolean          @default(false)
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime         @default(now())
+
+  @@index([organizationId])
+  @@index([token])
+  @@map("invitations")
+}
+
+// ─────────────────────────────────────────────
+// BOARD
+// ─────────────────────────────────────────────
+
+model Board {
+  id             String          @id @default(uuid())
+  organizationId String
+  name           String
+  description    String?
+  coverUrl       String?
+  visibility     BoardVisibility @default(PRIVATE)
+  lists          List[]
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  activityLogs   ActivityLog[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([organizationId])
+  @@map("boards")
+}
+
+// ─────────────────────────────────────────────
+// LIST
+// ─────────────────────────────────────────────
+
+model List {
+  id        String   @id @default(uuid())
+  boardId   String
+  name      String
+  position  Float    // Float allows gap-based ordering (1000, 2000...) without re-indexing
+  cards     Card[]
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([boardId])
+  @@map("lists")
+}
+
+// ─────────────────────────────────────────────
+// CARD
+// ─────────────────────────────────────────────
+
+model Card {
+  id          String         @id @default(uuid())
+  listId      String
+  title       String
+  description String?
+  position    Float
+  priority    CardPriority   @default(NONE)
+  dueDate     DateTime?
+  coverUrl    String?
+  list        List           @relation(fields: [listId], references: [id], onDelete: Cascade)
+  assignees   CardAssignee[]
+  labels      CardLabel[]
+  attachments Attachment[]
+  comments    Comment[]
+  activityLogs ActivityLog[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([listId])
+  @@map("cards")
+}
+
+model CardAssignee {
+  cardId     String
+  userId     String
+  card       Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([cardId, userId])
+  @@map("card_assignees")
+}
+
+// ─────────────────────────────────────────────
+// LABEL
+// ─────────────────────────────────────────────
+
+model Label {
+  id    String      @id @default(uuid())
+  name  String
+  color String
+  cards CardLabel[]
+
+  @@map("labels")
+}
+
+model CardLabel {
+  cardId  String
+  labelId String
+  card    Card   @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([cardId, labelId])
+  @@map("card_labels")
+}
+
+// ─────────────────────────────────────────────
+// ATTACHMENT
+// ─────────────────────────────────────────────
+
+model Attachment {
+  id          String   @id @default(uuid())
+  cardId      String
+  url         String   // Cloudinary URL
+  publicId    String   // Cloudinary public_id for deletion
+  filename    String
+  mimeType    String
+  sizeBytes   Int
+  card        Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([cardId])
+  @@map("attachments")
+}
+
+// ─────────────────────────────────────────────
+// COMMENT
+// ─────────────────────────────────────────────
+
+model Comment {
+  id        String   @id @default(uuid())
+  cardId    String
+  userId    String
+  body      String
+  card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cardId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────
+// ACTIVITY LOG (Audit Trail)
+// ─────────────────────────────────────────────
+
+model ActivityLog {
+  id             String       @id @default(uuid())
+  organizationId String
+  boardId        String?
+  cardId         String?
+  userId         String
+  action         String       // e.g. "card.created", "card.moved"
+  metadata       Json?        // arbitrary payload
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  board          Board?       @relation(fields: [boardId], references: [id], onDelete: SetNull)
+  card           Card?        @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+
+  @@index([organizationId])
+  @@index([boardId])
+  @@index([cardId])
+  @@map("activity_logs")
+}

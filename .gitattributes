@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# .gitattributes — Line Ending Normalization
+#
+# Ensures consistent line endings across Windows/macOS/Linux contributors.
+# Git will store files with LF in the repository (Unix-style) and convert
+# to the OS-native line ending on checkout.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Default: normalize all text files to LF in the repo
+* text=auto eol=lf
+
+# Force LF for these file types regardless of OS
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.json      text eol=lf
+*.md        text eol=lf
+*.yaml      text eol=lf
+*.yml       text eol=lf
+*.env       text eol=lf
+*.example   text eol=lf
+*.prisma    text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+.gitignore  text eol=lf
+.gitattributes text eol=lf
+
+# Treat these as binary — never modify line endings
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.svg       binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.otf       binary
+*.zip       binary
+*.tar.gz    binary
+*.tgz       binary
+*.gz        binary

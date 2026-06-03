@@ -1,0 +1,2 @@
+# This file keeps the frontend/ directory tracked by Git before Vite is scaffolded.
+# Delete this file once `npm create vite@latest ./` has been run inside frontend/.

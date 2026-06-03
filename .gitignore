@@ -1,0 +1,141 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Root .gitignore — CollaborativeWorkBoard Monorepo
+# Covers: backend (Node.js/TS), frontend (React/Vite), CI, and OS artifacts
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Dependencies ──────────────────────────────────────────────────────────────
+node_modules/
+.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# ── Build Outputs ─────────────────────────────────────────────────────────────
+dist/
+build/
+out/
+.next/
+.nuxt/
+.output/
+.vercel/
+
+# ── Environment & Secrets ─────────────────────────────────────────────────────
+# NEVER commit .env files — use .env.example as the template
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
+.env.staging
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ── Runtime & Cache ───────────────────────────────────────────────────────────
+.cache/
+.parcel-cache/
+.turbo/
+*.tsbuildinfo
+.eslintcache
+.stylelintcache
+
+# ── TypeScript ────────────────────────────────────────────────────────────────
+# Compiled output — tracked via dist/ above
+*.js.map
+*.d.ts.map
+
+# ── Prisma ────────────────────────────────────────────────────────────────────
+# Generated client is re-built on install — do not commit
+# (exception: the schema.prisma itself IS tracked)
+/backend/node_modules/.prisma/
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+coverage/
+.nyc_output/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
+# ── OS Artifacts ──────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ── Editor & IDE ──────────────────────────────────────────────────────────────
+# VS Code — share settings.json and extensions.json but not workspace state
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+*.code-workspace
+
+# JetBrains (WebStorm, IntelliJ)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Vim / Neovim
+*.swp
+*.swo
+*~
+.netrwhist
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# Local override files should not be committed
+docker-compose.override.yml
+docker-compose.local.yml
+
+# ── Miscellaneous ─────────────────────────────────────────────────────────────
+*.pem
+*.key
+*.crt
+*.cert
+.vercel
+.netlify
+*.zip
+*.tar.gz
+*.tgz
+tmp/
+temp/
