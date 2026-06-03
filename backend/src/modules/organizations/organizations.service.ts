@@ -132,13 +132,7 @@ export class OrganizationsService {
       // This ensures robust/fault-tolerant operation
     }
 
-    return {
-      id: invite.id,
-      email: invite.email,
-      role: invite.role,
-      token: invite.token,
-      expiresAt: invite.expiresAt,
-    };
+    return invite;
   }
 
   /**
