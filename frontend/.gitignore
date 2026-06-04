@@ -1,70 +1,24 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Frontend .gitignore — React / Vite / TypeScript / TailwindCSS
-# ─────────────────────────────────────────────────────────────────────────────
-
-# ── Dependencies ──────────────────────────────────────────────────────────────
-node_modules/
-.pnp
-.pnp.js
-
-# ── Build Output ──────────────────────────────────────────────────────────────
-dist/
-build/
-*.tsbuildinfo
-
-# ── Vite ──────────────────────────────────────────────────────────────────────
-.vite/
-
-# ── Environment & Secrets ─────────────────────────────────────────────────────
-# Vite exposes VITE_* vars to the browser — never put secrets in these
-# Keep .env.example as the template
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# ── Vercel ────────────────────────────────────────────────────────────────────
-.vercel/
-
-# ── Logs ──────────────────────────────────────────────────────────────────────
-logs/
+# Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+lerna-debug.log*
 
-# ── Testing ───────────────────────────────────────────────────────────────────
-coverage/
-test-results/
-playwright-report/
-blob-report/
-playwright/.cache/
+node_modules
+dist
+dist-ssr
+*.local
 
-# ── Cache ─────────────────────────────────────────────────────────────────────
-.cache/
-.eslintcache
-.parcel-cache/
-
-# ── OS Artifacts ──────────────────────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-Desktop.ini
-
-# ── Editor ────────────────────────────────────────────────────────────────────
+# Editor directories and files
 .vscode/*
-!.vscode/settings.json
 !.vscode/extensions.json
-!.vscode/launch.json
-.idea/
-*.swp
-*.swo
-
-# ── Storybook ─────────────────────────────────────────────────────────────────
-storybook-static/
-
-# ── Misc ──────────────────────────────────────────────────────────────────────
-*.zip
-tmp/
-temp/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

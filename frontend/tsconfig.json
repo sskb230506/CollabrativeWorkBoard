@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "allowArbitraryExtensions": true,
+    "jsx": "react-jsx",
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+    "paths": {
+      "@/*":           ["./src/*"],
+      "@api/*":        ["./src/api/*"],
+      "@components/*": ["./src/components/*"],
+      "@context/*":    ["./src/context/*"],
+      "@features/*":   ["./src/features/*"],
+      "@hooks/*":      ["./src/hooks/*"],
+      "@layouts/*":    ["./src/layouts/*"],
+      "@pages/*":      ["./src/pages/*"],
+      "@providers/*":  ["./src/providers/*"],
+      "@routes/*":    ["./src/routes/*"],
+      "@appTypes":    ["./src/types/index.ts"],
+      "@appTypes/*":  ["./src/types/*"],
+      "@utils/*":     ["./src/utils/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}
