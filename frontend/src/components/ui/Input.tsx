@@ -2,10 +2,10 @@ import React from 'react';
 import { cn } from '@utils/cn';
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string;
-  hint?: string;
-  leftIcon?: React.ReactNode;
+  label?: string | undefined;
+  error?: string | undefined;
+  hint?: string | undefined;
+  leftIcon?: React.ReactNode | undefined;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(

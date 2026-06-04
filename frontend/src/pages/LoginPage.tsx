@@ -1,62 +1,78 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Mail, Lock, LogIn } from 'lucide-react';
 import { useLogin } from '@features/auth/hooks/useAuthHooks';
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
 
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+type LoginSchemaInput = z.infer<typeof loginSchema>;
+
 export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const login = useLogin();
+  const [apiError, setApiError] = useState('');
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginSchemaInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const onSubmit = async (data: LoginSchemaInput) => {
+    setApiError('');
     try {
-      await login.mutateAsync({ email, password });
+      await login.mutateAsync(data);
       navigate('/boards', { replace: true });
     } catch {
-      setError('Invalid email or password. Please try again.');
+      setApiError('Invalid email or password. Please try again.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       <div className="mb-2 text-center">
         <h1 className="text-xl font-semibold text-surface-100">Welcome back</h1>
         <p className="mt-1 text-sm text-surface-400">Sign in to your workspace</p>
       </div>
 
-      {error && (
+      {apiError && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-          {error}
+          {apiError}
         </div>
       )}
 
       <Input
         label="Email"
         type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
         placeholder="you@company.com"
         autoComplete="email"
-        required
         leftIcon={<Mail size={15} />}
+        error={errors.email?.message}
+        {...register('email')}
       />
 
       <Input
         label="Password"
         type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
         placeholder="••••••••"
         autoComplete="current-password"
-        required
         leftIcon={<Lock size={15} />}
+        error={errors.password?.message}
+        {...register('password')}
       />
 
       <Button

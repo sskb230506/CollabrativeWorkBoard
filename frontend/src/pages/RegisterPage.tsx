@@ -1,80 +1,96 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Mail, Lock, User, UserPlus } from 'lucide-react';
 import { useRegister } from '@features/auth/hooks/useAuthHooks';
 import { Button } from '@components/ui/Button';
 import { Input } from '@components/ui/Input';
 
+const registerSchema = z.object({
+  name: z.string().min(2, 'Full name must be at least 2 characters'),
+  email: z.string().min(1, 'Email is required').email('Please enter a valid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+});
+
+type RegisterSchemaInput = z.infer<typeof registerSchema>;
+
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
-  const register = useRegister();
+  const registerMut = useRegister();
+  const [apiError, setApiError] = useState('');
 
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterSchemaInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      password: '',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const onSubmit = async (data: RegisterSchemaInput) => {
+    setApiError('');
     try {
-      await register.mutateAsync({ email, name, password });
+      await registerMut.mutateAsync(data);
       navigate('/boards', { replace: true });
     } catch {
-      setError('Could not create account. The email may already be in use.');
+      setApiError('Could not create account. The email may already be in use.');
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4" noValidate>
       <div className="mb-2 text-center">
         <h1 className="text-xl font-semibold text-surface-100">Create your account</h1>
         <p className="mt-1 text-sm text-surface-400">Start collaborating in seconds</p>
       </div>
 
-      {error && (
+      {apiError && (
         <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
-          {error}
+          {apiError}
         </div>
       )}
 
       <Input
         label="Full name"
         type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
         placeholder="Jane Smith"
         autoComplete="name"
-        required
         leftIcon={<User size={15} />}
+        error={errors.name?.message}
+        {...register('name')}
       />
 
       <Input
         label="Email"
         type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
         placeholder="you@company.com"
         autoComplete="email"
-        required
         leftIcon={<Mail size={15} />}
+        error={errors.email?.message}
+        {...register('email')}
       />
 
       <Input
         label="Password"
         type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
         placeholder="Min. 8 characters"
         autoComplete="new-password"
-        required
         leftIcon={<Lock size={15} />}
+        error={errors.password?.message}
+        {...register('password')}
       />
 
       <Button
         type="submit"
         fullWidth
-        isLoading={register.isPending}
+        isLoading={registerMut.isPending}
         leftIcon={<UserPlus size={16} />}
         className="mt-1"
       >
