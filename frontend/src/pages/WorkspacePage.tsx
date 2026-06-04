@@ -12,6 +12,7 @@ import { ListColumn } from '@features/workspace/components/ListColumn';
 import { Button } from '@components/ui/Button';
 import { Spinner } from '@components/ui/Spinner';
 import { AvatarGroup } from '@components/ui/Avatar';
+import { useRecentBoards } from '@hooks/useRecentBoards';
 
 import type { List, Card } from '@appTypes';
 
@@ -30,9 +31,16 @@ export const WorkspacePage: React.FC = () => {
   const { activeOrgId } = useActiveOrg();
   const { user } = useAuth();
   const { joinBoard, leaveBoard, presence } = useSocket();
+  const { addRecentBoard } = useRecentBoards();
 
   const orgId = activeOrgId ?? '';
   const bId   = boardId ?? '';
+
+  useEffect(() => {
+    if (bId) {
+      addRecentBoard(bId);
+    }
+  }, [bId, addRecentBoard]);
 
   const { data: board, isLoading: boardLoading } = useBoard(orgId, bId);
   const { data: lists = [], isLoading: listsLoading } = useLists(orgId, bId);
