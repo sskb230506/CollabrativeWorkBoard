@@ -17,6 +17,7 @@ export const queryKeys = {
   organizations: {
     all: ['organizations'] as const,
     detail: (orgId: string) => ['organizations', orgId] as const,
+    members: (orgId: string) => ['organizations', orgId, 'members'] as const,
   },
 
   // Boards

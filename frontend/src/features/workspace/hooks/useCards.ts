@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { cardsApi, type CreateCardInput, type MoveCardInput } from '@api/cards.api';
+import { cardsApi, type CreateCardInput, type MoveCardInput, type UpdateCardInput } from '@api/cards.api';
 import { queryKeys } from '@api/query-keys';
 import type { Card } from '@appTypes';
 
@@ -50,6 +50,19 @@ export const useMoveCard = (orgId: string, boardId: string) => {
     },
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.cards.all(orgId, boardId) });
+    },
+  });
+};
+
+export const useUpdateCard = (orgId: string, boardId: string) => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ cardId, data }: { cardId: string; data: UpdateCardInput }) =>
+      cardsApi.update(orgId, boardId, cardId, data),
+    onSuccess: (updatedCard) => {
+      qc.setQueryData<Card[]>(queryKeys.cards.all(orgId, boardId), (old) =>
+        old?.map((c) => (c.id === updatedCard.id ? updatedCard : c)),
+      );
     },
   });
 };

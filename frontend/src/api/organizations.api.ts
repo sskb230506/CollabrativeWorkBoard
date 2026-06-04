@@ -3,6 +3,18 @@ import type { ApiResponse, Organization } from '@appTypes';
 
 export type CreateOrgInput = { name: string; logoUrl?: string | null };
 
+export type OrganizationMember = {
+  userId: string;
+  organizationId: string;
+  role: 'OWNER' | 'ADMIN' | 'MEMBER';
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    avatarUrl: string | null;
+  };
+};
+
 export const organizationsApi = {
   list: () =>
     apiClient.get<ApiResponse<Organization[]>>('/organizations').then((r) => r.data.data),
@@ -15,5 +27,10 @@ export const organizationsApi = {
   create: (data: CreateOrgInput) =>
     apiClient
       .post<ApiResponse<Organization>>('/organizations', data)
+      .then((r) => r.data.data),
+
+  listMembers: (orgId: string) =>
+    apiClient
+      .get<ApiResponse<OrganizationMember[]>>(`/organizations/${orgId}/members`)
       .then((r) => r.data.data),
 };
