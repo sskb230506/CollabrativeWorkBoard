@@ -1,7 +1,9 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Settings, ChevronRight } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useBoards } from '@features/boards/hooks/useBoards';
 import { useActiveOrg } from '@hooks/useActiveOrg';
+import { organizationsApi } from '@api/organizations.api';
 import { cn } from '@utils/cn';
 import type { Board } from '@appTypes';
 
@@ -9,7 +11,7 @@ import type { Board } from '@appTypes';
 // Sidebar
 //
 // Fixed left-side navigation showing:
-//   - App logo + org name
+//   - App logo + organization dropdown switcher
 //   - Primary navigation (Boards, Settings)
 //   - Board list for the active organization
 //
@@ -17,17 +19,40 @@ import type { Board } from '@appTypes';
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const Sidebar: React.FC = () => {
-  const { activeOrgId } = useActiveOrg();
+  const { activeOrgId, setActiveOrgId } = useActiveOrg();
   const { data: boards } = useBoards(activeOrgId ?? '');
+
+  const { data: orgs } = useQuery({
+    queryKey: ['organizations'],
+    queryFn: organizationsApi.list,
+  });
+
+  const activeOrg = orgs?.find((o) => o.id === activeOrgId);
 
   return (
     <aside className="flex h-full w-60 flex-shrink-0 flex-col border-r border-surface-800 bg-surface-950">
-      {/* Brand */}
-      <div className="flex h-14 items-center gap-2.5 border-b border-surface-800 px-4">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary-600">
+      {/* Brand / Workspace Switcher */}
+      <div className="flex h-14 items-center gap-2 border-b border-surface-800 px-4">
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary-600">
           <LayoutDashboard size={15} className="text-white" />
         </div>
-        <span className="font-semibold tracking-tight text-surface-100">CollabBoard</span>
+        {orgs && orgs.length > 1 ? (
+          <select
+            value={activeOrgId ?? ''}
+            onChange={(e) => setActiveOrgId(e.target.value)}
+            className="w-full bg-transparent text-sm font-semibold text-surface-100 focus:outline-none cursor-pointer pr-4"
+          >
+            {orgs.map((org) => (
+              <option key={org.id} value={org.id} className="bg-surface-900 text-surface-100">
+                {org.name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="font-semibold tracking-tight text-surface-100 truncate">
+            {activeOrg?.name ?? 'CollabBoard'}
+          </span>
+        )}
       </div>
 
       {/* Primary nav */}

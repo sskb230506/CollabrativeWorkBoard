@@ -1,7 +1,7 @@
 import apiClient from './client';
 import type { ApiResponse, Organization } from '@appTypes';
 
-export type CreateOrgInput = { name: string; slug: string };
+export type CreateOrgInput = { name: string; logoUrl?: string | null };
 
 export const organizationsApi = {
   list: () =>
