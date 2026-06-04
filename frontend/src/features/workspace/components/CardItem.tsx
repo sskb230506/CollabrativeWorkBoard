@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { PriorityBadge } from '@components/ui/PriorityBadge';
 import { AvatarGroup } from '@components/ui/Avatar';
@@ -19,18 +20,34 @@ const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 export const CardItem: React.FC<CardItemProps> = ({ card }) => {
+  const [isDragging, setIsDragging] = useState(false);
   const overdue = isOverdue(card.dueDate);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('cardId', card.id);
+    e.dataTransfer.effectAllowed = 'move';
+    // Delays opacity shift so the drag image/ghost remains fully visible
+    setTimeout(() => setIsDragging(true), 0);
+  };
+
+  const handleDragEnd = () => {
+    setIsDragging(false);
+  };
 
   return (
     <div
       role="button"
       tabIndex={0}
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       className={cn(
         'group flex flex-col gap-2.5 rounded-xl border bg-surface-800/80 p-3',
-        'cursor-pointer transition-all duration-150',
-        'hover:-translate-y-0.5 hover:border-surface-600 hover:bg-surface-800 hover:shadow-card',
+        'cursor-grab active:cursor-grabbing transition-all duration-150 select-none',
+        isDragging
+          ? 'opacity-30 border-dashed border-primary-500 bg-surface-950/50 shadow-none scale-[0.98]'
+          : 'hover:-translate-y-0.5 hover:border-surface-600 hover:bg-surface-800 hover:shadow-card border-surface-700/60',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500',
-        'border-surface-700/60',
       )}
     >
       {/* Cover image */}

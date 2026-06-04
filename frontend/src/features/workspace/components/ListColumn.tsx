@@ -1,10 +1,18 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Plus, MoreHorizontal } from 'lucide-react';
 import { useCreateCard } from '@features/workspace/hooks/useCards';
 import { useDeleteList } from '@features/workspace/hooks/useLists';
+import { useMoveCard } from '@features/workspace/hooks/useCards';
 import { CardItem } from './CardItem';
 import { Button } from '@components/ui/Button';
 import type { Card, List } from '@appTypes';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ListColumn
+//
+// Represents a single Trello board list column.
+// Acts as a drop zone target for CardItems using custom fractional positioning.
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface ListColumnProps {
   list: List;
@@ -16,10 +24,14 @@ interface ListColumnProps {
 export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boardId }) => {
   const createCard = useCreateCard(orgId, boardId);
   const deleteList = useDeleteList(orgId, boardId);
+  const moveCard = useMoveCard(orgId, boardId);
 
   const [addingCard, setAddingCard] = useState(false);
   const [cardTitle, setCardTitle] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+
+  // Drag-and-drop hover indices
+  const [dropIndex, setDropIndex] = useState<number | null>(null);
 
   const handleAddCard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +40,72 @@ export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boar
     setCardTitle('');
     setAddingCard(false);
   };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const container = e.currentTarget;
+    const children = Array.from(container.children) as HTMLElement[];
+
+    // Extract only card elements (buttons represent draggable CardItems)
+    const cardElements = children.filter((child) => child.getAttribute('role') === 'button');
+    const clientY = e.clientY;
+    let targetIndex = cardElements.length;
+
+    for (let i = 0; i < cardElements.length; i++) {
+      const rect = cardElements[i].getBoundingClientRect();
+      const middleY = rect.top + rect.height / 2;
+      if (clientY < middleY) {
+        targetIndex = i;
+        break;
+      }
+    }
+    setDropIndex(targetIndex);
+  };
+
+  const handleDragLeave = () => {
+    setDropIndex(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const cardId = e.dataTransfer.getData('cardId');
+    const currentTargetIndex = dropIndex;
+    setDropIndex(null);
+
+    if (!cardId || currentTargetIndex === null) return;
+
+    // Filter out the dragged card itself to compute target fractional positions
+    const filteredCards = cards.filter((c) => c.id !== cardId);
+    let newPosition: number;
+
+    if (filteredCards.length === 0) {
+      newPosition = 1000;
+    } else if (currentTargetIndex === 0) {
+      newPosition = filteredCards[0].position / 2;
+    } else if (currentTargetIndex >= filteredCards.length) {
+      newPosition = filteredCards[filteredCards.length - 1].position + 1000;
+    } else {
+      const prevCard = filteredCards[currentTargetIndex - 1];
+      const nextCard = filteredCards[currentTargetIndex];
+      newPosition = (prevCard.position + nextCard.position) / 2;
+    }
+
+    try {
+      await moveCard.mutateAsync({
+        cardId,
+        data: {
+          listId: list.id,
+          position: Math.round(newPosition),
+        },
+      });
+    } catch (err) {
+      console.error('Failed to move card:', err);
+    }
+  };
+
+  const dropIndicator = (
+    <div className="h-16 w-full shrink-0 rounded-xl border border-dashed border-primary-500/50 bg-primary-950/20 transition-all duration-100" />
+  );
 
   return (
     <div
@@ -47,7 +125,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boar
         <div className="relative">
           <button
             onClick={() => setMenuOpen((o) => !o)}
-            className="rounded-lg p-1 text-surface-500 transition hover:bg-surface-800 hover:text-surface-300"
+            className="rounded-lg p-1 text-surface-500 transition hover:bg-surface-800 hover:text-surface-300 focus:outline-none"
           >
             <MoreHorizontal size={15} />
           </button>
@@ -67,11 +145,20 @@ export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boar
         </div>
       </div>
 
-      {/* Cards */}
-      <div className="flex flex-col gap-2 overflow-y-auto px-3 pb-2">
-        {cards.map((card) => (
-          <CardItem key={card.id} card={card} orgId={orgId} boardId={boardId} />
+      {/* Cards Scrollable Drag-and-Drop Area */}
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className="flex flex-col gap-2 overflow-y-auto px-3 pb-2 min-h-[4rem] transition-colors"
+      >
+        {cards.map((card, idx) => (
+          <React.Fragment key={card.id}>
+            {dropIndex === idx && dropIndicator}
+            <CardItem card={card} orgId={orgId} boardId={boardId} />
+          </React.Fragment>
         ))}
+        {dropIndex === cards.length && dropIndicator}
       </div>
 
       {/* Add card */}
@@ -94,7 +181,10 @@ export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boar
                 type="button"
                 size="sm"
                 variant="ghost"
-                onClick={() => { setAddingCard(false); setCardTitle(''); }}
+                onClick={() => {
+                  setAddingCard(false);
+                  setCardTitle('');
+                }}
               >
                 Cancel
               </Button>
@@ -103,7 +193,7 @@ export const ListColumn: React.FC<ListColumnProps> = ({ list, cards, orgId, boar
         ) : (
           <button
             onClick={() => setAddingCard(true)}
-            className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-surface-500 transition hover:bg-surface-800 hover:text-surface-300"
+            className="flex w-full items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm text-surface-500 transition hover:bg-surface-800 hover:text-surface-300 focus:outline-none"
           >
             <Plus size={14} />
             Add card
