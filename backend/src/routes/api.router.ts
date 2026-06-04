@@ -3,6 +3,7 @@ import { healthRouter } from '@modules/health/health.router';
 import { authRouter } from '@modules/auth/auth.router';
 import { organizationsRouter } from '@modules/organizations/organizations.router';
 import { boardsRouter } from '@modules/boards/boards.router';
+import { listsRouter } from '@modules/lists/lists.router';
 import { cardsRouter } from '@modules/cards/cards.router';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -18,7 +19,9 @@ apiRouter.use('/health', healthRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/organizations', organizationsRouter);
 
-// Board and card routes are nested under organizations for tenant context
-// e.g. /api/v1/organizations/:organizationId/boards/:boardId/cards
+// Board, list, and card routes are nested under organizations for tenant context
+// e.g. /api/v1/organizations/:organizationId/boards/:boardId/lists
 apiRouter.use('/organizations', boardsRouter);
+apiRouter.use('/organizations', listsRouter);
 apiRouter.use('/organizations', cardsRouter);
+
