@@ -3,9 +3,9 @@ import type { ApiResponse, Board } from '@appTypes';
 
 export type CreateBoardInput = {
   name: string;
-  description?: string;
-  coverUrl?: string;
-  visibility?: 'PUBLIC' | 'PRIVATE' | 'ORGANIZATION';
+  description?: string | undefined;
+  coverUrl?: string | undefined;
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'ORGANIZATION' | undefined;
 };
 
 export type UpdateBoardInput = Partial<CreateBoardInput>;

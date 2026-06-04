@@ -21,6 +21,7 @@ export const BoardsPage: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [boardName, setBoardName] = useState('');
   const [boardDesc, setBoardDesc] = useState('');
+  const [visibility, setVisibility] = useState<'PUBLIC' | 'PRIVATE' | 'ORGANIZATION'>('ORGANIZATION');
 
   const recentBoards = recentIds
     .map((id) => boards?.find((b) => b.id === id))
@@ -29,10 +30,15 @@ export const BoardsPage: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!boardName.trim()) return;
-    const board = await createBoard.mutateAsync({ name: boardName, description: boardDesc });
+    const board = await createBoard.mutateAsync({
+      name: boardName,
+      description: boardDesc,
+      visibility,
+    });
     setIsModalOpen(false);
     setBoardName('');
     setBoardDesc('');
+    setVisibility('ORGANIZATION');
     navigate(`/boards/${board.id}`);
   };
 
@@ -120,6 +126,18 @@ export const BoardsPage: React.FC = () => {
             value={boardDesc}
             onChange={(e) => setBoardDesc(e.target.value)}
           />
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-semibold text-surface-400">Visibility</label>
+            <select
+              value={visibility}
+              onChange={(e) => setVisibility(e.target.value as 'PUBLIC' | 'PRIVATE' | 'ORGANIZATION')}
+              className="w-full rounded-xl border border-surface-700 bg-surface-800 px-3.5 py-2 text-sm text-surface-100 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 cursor-pointer"
+            >
+              <option value="ORGANIZATION" className="bg-surface-800 text-surface-100">Organization (All members)</option>
+              <option value="PRIVATE" className="bg-surface-800 text-surface-100">Private (Only you)</option>
+              <option value="PUBLIC" className="bg-surface-800 text-surface-100">Public (Anyone with link)</option>
+            </select>
+          </div>
           <div className="flex gap-2 pt-2">
             <Button
               type="button"
