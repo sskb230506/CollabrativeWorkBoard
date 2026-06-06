@@ -137,6 +137,22 @@ export interface PresenceEntry {
   lastSeen: number;
 }
 
+// ── Comment ───────────────────────────────────────────────────────────────────
+
+export interface Comment {
+  id: string;
+  cardId: string;
+  userId: string;
+  body: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: Nullable<string>;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
 // ── Board Workspace (composite) ───────────────────────────────────────────────
 
 export interface BoardWithLists extends Board {

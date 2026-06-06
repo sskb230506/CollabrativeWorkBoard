@@ -39,4 +39,10 @@ export const queryKeys = {
     detail: (orgId: string, boardId: string, cardId: string) =>
       ['cards', orgId, boardId, cardId] as const,
   },
+
+  // Comments
+  comments: {
+    all: (orgId: string, boardId: string, cardId: string) =>
+      ['comments', orgId, boardId, cardId] as const,
+  },
 } as const;

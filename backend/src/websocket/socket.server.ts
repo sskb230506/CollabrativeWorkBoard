@@ -8,6 +8,7 @@ import { JwtAccessPayload, SocketUser } from '@appTypes';
 import { registerBoardHandlers } from '@websocket/handlers/board.handler';
 import { registerCardHandlers } from '@websocket/handlers/card.handler';
 import { registerPresenceHandlers } from '@websocket/handlers/presence.handler';
+import { registerCommentHandlers } from './handlers/comment.handler';
 import { PresenceService } from '@websocket/presence.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -143,6 +144,7 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
     registerBoardHandlers(io, authSocket);
     registerCardHandlers(io, authSocket);
     registerPresenceHandlers(io, authSocket);
+    registerCommentHandlers(io, authSocket);
 
     socket.on('disconnect', (reason) => {
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');
