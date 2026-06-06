@@ -4,9 +4,9 @@
   "description": "Production-grade Real-Time Collaborative Workboard API",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc --project tsconfig.json",
-    "start": "node -r tsconfig-paths/register dist/server.js",
+    "start": "node --env-file=.env -r tsconfig-paths/register dist/server.js",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "db:generate": "prisma generate",

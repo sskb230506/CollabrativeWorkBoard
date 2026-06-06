@@ -3,8 +3,17 @@ import { CalendarDays } from 'lucide-react';
 import { PriorityBadge } from '@components/ui/PriorityBadge';
 import { AvatarGroup } from '@components/ui/Avatar';
 import { CardDetailsModal } from './CardDetailsModal';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import type { Card, CardAssignee } from '@appTypes';
 import { cn } from '@utils/cn';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CardItem
+//
+// Represents a single sortable Trello card element.
+// Implements useSortable from @dnd-kit/sortable for smooth drag operations.
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface CardItemProps {
   card: Card;
@@ -21,35 +30,37 @@ const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 
 export const CardItem: React.FC<CardItemProps> = ({ card, orgId, boardId }) => {
-  const [isDragging, setIsDragging] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const overdue = isOverdue(card.dueDate);
 
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('cardId', card.id);
-    e.dataTransfer.effectAllowed = 'move';
-    // Delays opacity shift so the drag image/ghost remains fully visible
-    setTimeout(() => setIsDragging(true), 0);
-  };
+  // Setup sortable node behaviors
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: card.id });
 
-  const handleDragEnd = () => {
-    setIsDragging(false);
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
   };
 
   return (
     <>
       <div
-        role="button"
-        tabIndex={0}
-        draggable
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
+        ref={setNodeRef}
+        style={style}
         onClick={() => setIsModalOpen(true)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             setIsModalOpen(true);
           }
         }}
+        {...attributes}
+        {...listeners}
         className={cn(
           'group flex flex-col gap-2.5 rounded-xl border bg-surface-800/80 p-3',
           'cursor-grab active:cursor-grabbing transition-all duration-150 select-none',
@@ -66,6 +77,7 @@ export const CardItem: React.FC<CardItemProps> = ({ card, orgId, boardId }) => {
               src={card.coverUrl}
               alt=""
               className="h-full w-full object-cover"
+              draggable={false} // Disable default image drag behaviors
             />
           </div>
         )}

@@ -16,8 +16,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().url('DATABASE_URL must be a valid PostgreSQL connection string'),
 
   // Redis (Upstash REST — for caching)
-  UPSTASH_REDIS_REST_URL: z.string().url('UPSTASH_REDIS_REST_URL must be a valid URL'),
-  UPSTASH_REDIS_REST_TOKEN: z.string().min(1, 'UPSTASH_REDIS_REST_TOKEN is required'),
+  UPSTASH_REDIS_REST_URL: z.string().optional().or(z.literal('')),
+  UPSTASH_REDIS_REST_TOKEN: z.string().optional().or(z.literal('')),
 
   // Redis (raw URL — for BullMQ)
   REDIS_URL: z.string().min(1, 'REDIS_URL is required for BullMQ'),

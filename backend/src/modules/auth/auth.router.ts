@@ -38,7 +38,6 @@ authRouter.post(
 
 authRouter.post(
   '/refresh',
-  validate({ body: RefreshTokenSchema }),
   authController.refresh,
 );
 
@@ -46,7 +45,6 @@ authRouter.post(
 authRouter.post(
   '/logout',
   authenticate,
-  validate({ body: RefreshTokenSchema }),
   authController.logout,
 );
 
