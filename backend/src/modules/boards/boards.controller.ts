@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { BoardsService } from './boards.service';
 import { sendSuccess, sendCreated, asyncHandler } from '@lib/api.helpers';
 import { CreateBoardInput, UpdateBoardInput } from './boards.schema';
+import { activitiesService } from '../activities/activities.service';
 
 export class BoardsController {
   constructor(private readonly boardsService: BoardsService) {}
@@ -11,6 +12,13 @@ export class BoardsController {
       req.organizationId!,
       req.body as CreateBoardInput,
     );
+    await activitiesService.log({
+      organizationId: req.organizationId!,
+      boardId: result.id,
+      userId: (req.user as { id: string }).id,
+      action: 'board.created',
+      metadata: { boardName: result.name },
+    });
     return sendCreated(res, result, 'Board created successfully');
   });
 

@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Clock } from 'lucide-react';
 import { useBoard } from '@features/boards/hooks/useBoards';
 import { useLists, useCreateList } from '@features/workspace/hooks/useLists';
 import { useCards, useMoveCard } from '@features/workspace/hooks/useCards';
@@ -12,6 +12,7 @@ import { Button } from '@components/ui/Button';
 import { Spinner } from '@components/ui/Spinner';
 import { AvatarGroup } from '@components/ui/Avatar';
 import { useRecentBoards } from '@hooks/useRecentBoards';
+import { ActivityFeedPanel } from '@features/workspace/components/ActivityFeedPanel';
 
 import {
   DndContext,
@@ -80,6 +81,7 @@ export const WorkspacePage: React.FC = () => {
   // Add list inline state
   const [addingList, setAddingList] = useState(false);
   const [newListName, setNewListName] = useState('');
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
 
   const handleAddList = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -192,6 +194,14 @@ export const WorkspacePage: React.FC = () => {
                 />
               </div>
             )}
+            <button
+              type="button"
+              onClick={() => setIsActivityOpen(true)}
+              className="flex items-center gap-2 rounded-full border border-surface-850 bg-surface-900/60 px-3.5 py-1.5 text-xs font-semibold text-surface-300 shadow-sm backdrop-blur-sm transition hover:bg-surface-850 hover:text-surface-100"
+            >
+              <Clock size={13} className="text-primary-500" />
+              Activity
+            </button>
           </div>
         </div>
 
@@ -247,6 +257,12 @@ export const WorkspacePage: React.FC = () => {
           </div>
         </div>
       </div>
+      <ActivityFeedPanel
+        orgId={orgId}
+        boardId={bId}
+        isOpen={isActivityOpen}
+        onClose={() => setIsActivityOpen(false)}
+      />
     </DndContext>
   );
 };

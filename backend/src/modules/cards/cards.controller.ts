@@ -10,6 +10,7 @@ import {
   emitCardMoved,
 } from '@websocket/handlers/card.handler';
 import { logger } from '@lib/logger';
+import { activitiesService } from '../activities/activities.service';
 
 export class CardsController {
   constructor(private readonly cardsService: CardsService) {}
@@ -27,6 +28,14 @@ export class CardsController {
     } catch (err) {
       logger.error({ err }, 'Failed to emit card:created event');
     }
+    await activitiesService.log({
+      organizationId: req.organizationId!,
+      boardId,
+      cardId: result.id,
+      userId: (req.user as { id: string }).id,
+      action: 'card.created',
+      metadata: { cardTitle: result.title },
+    });
     return sendCreated(res, result, 'Card created successfully');
   });
 
@@ -56,6 +65,14 @@ export class CardsController {
     } catch (err) {
       logger.error({ err }, 'Failed to emit card:updated event');
     }
+    await activitiesService.log({
+      organizationId: req.organizationId!,
+      boardId,
+      cardId: result.id,
+      userId: (req.user as { id: string }).id,
+      action: 'card.updated',
+      metadata: { cardTitle: result.title },
+    });
     return sendSuccess(res, result, 200, 'Card updated successfully');
   });
 
@@ -87,6 +104,14 @@ export class CardsController {
     } catch (err) {
       logger.error({ err }, 'Failed to emit card:moved event');
     }
+    await activitiesService.log({
+      organizationId: req.organizationId!,
+      boardId,
+      cardId: result.id,
+      userId: (req.user as { id: string }).id,
+      action: 'card.moved',
+      metadata: { cardTitle: result.title, listId },
+    });
     return sendSuccess(res, result, 200, 'Card moved successfully');
   });
 }

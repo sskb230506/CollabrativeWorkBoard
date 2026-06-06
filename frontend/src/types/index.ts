@@ -153,6 +153,32 @@ export interface Comment {
   updatedAt: string;
 }
 
+// ── ActivityLog ───────────────────────────────────────────────────────────────
+
+export interface ActivityLog {
+  id: string;
+  organizationId: string;
+  boardId: string | null;
+  cardId: string | null;
+  userId: string;
+  action: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
+  board?: {
+    id: string;
+    name: string;
+  } | null;
+  card?: {
+    id: string;
+    title: string;
+  } | null;
+}
+
 // ── Board Workspace (composite) ───────────────────────────────────────────────
 
 export interface BoardWithLists extends Board {

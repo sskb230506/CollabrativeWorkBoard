@@ -6,6 +6,7 @@ import { boardsRouter } from '@modules/boards/boards.router';
 import { listsRouter } from '@modules/lists/lists.router';
 import { cardsRouter } from '@modules/cards/cards.router';
 import { commentsRouter } from '@modules/comments/comments.router';
+import { activitiesRouter } from '@modules/activities/activities.router';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API Router (v1)
@@ -26,4 +27,5 @@ apiRouter.use('/organizations', boardsRouter);
 apiRouter.use('/organizations', listsRouter);
 apiRouter.use('/organizations', cardsRouter);
 apiRouter.use('/organizations', commentsRouter);
+apiRouter.use('/organizations', activitiesRouter);
 

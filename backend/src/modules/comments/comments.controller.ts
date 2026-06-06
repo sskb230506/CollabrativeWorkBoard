@@ -3,6 +3,7 @@ import { CommentsService } from './comments.service';
 import { ForbiddenError } from '../../lib/errors';
 import { getIO } from '../../websocket/socket.server';
 import { asyncHandler, sendSuccess, sendCreated } from '../../lib/api.helpers';
+import { activitiesService } from '../activities/activities.service';
 
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
@@ -35,6 +36,15 @@ export class CommentsController {
     // Broadcast comment_created event to board room
     const io = getIO();
     io.to(`board:${boardId}`).emit('comment_created', comment);
+
+    await activitiesService.log({
+      organizationId: req.params['organizationId'] || req.organizationId!,
+      boardId: boardId ?? null,
+      cardId,
+      userId: user.id,
+      action: 'comment.created',
+      metadata: { commentId: comment.id, commentBody: comment.body },
+    });
 
     return sendCreated(res, comment, 'Comment created successfully');
   });
