@@ -75,6 +75,8 @@ export interface PaginatedResult<T> {
 export interface SocketUser {
   userId: string;
   organizationId: string;
+  name: string;
+  avatarUrl: string | null;
 }
 
 // ── BullMQ Job Payloads ───────────────────────────────────────────────────────
@@ -116,3 +118,15 @@ export interface IBaseRepository<TEntity, TCreateInput, TUpdateInput> {
   update(id: string, data: TUpdateInput): Promise<TEntity>;
   delete(id: string): Promise<void>;
 }
+
+// ── Presence (real-time) ──────────────────────────────────────────────────────
+export interface PresenceEntry {
+  userId: string;
+  name: string | undefined;
+  avatarUrl: string | null | undefined;
+  boardId: string | null;
+  organizationId: string;
+  socketId: string;
+  lastSeen: number;
+}
+

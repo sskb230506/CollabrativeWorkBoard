@@ -12,22 +12,75 @@ import { logger } from '@lib/logger';
 
 interface RedisClientInterface {
   get<T>(key: string): Promise<T | null>;
-  set(key: string, value: any, options?: { ex: number }): Promise<any>;
-  del(...keys: string[]): Promise<any>;
+  set(key: string, value: unknown, options?: { ex: number }): Promise<unknown>;
+  del(...keys: string[]): Promise<unknown>;
   ping(): Promise<string>;
+  
+  // ZSET operations
+  zadd(key: string, score: number, member: string): Promise<number>;
+  zrem(key: string, ...members: string[]): Promise<number>;
+  zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number>;
+  zrange(key: string, min: number, max: number): Promise<string[]>;
+  zcard(key: string): Promise<number>;
+
+  // Batch get
+  mget<T>(keys: string[]): Promise<(T | null)[]>;
 }
 
 let redisClient: RedisClientInterface;
 
 if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
   logger.info('Using Upstash Redis REST client for caching');
-  redisClient = new UpstashRedis({
+  const upstash = new UpstashRedis({
     url: env.UPSTASH_REDIS_REST_URL,
     token: env.UPSTASH_REDIS_REST_TOKEN,
-  }) as unknown as RedisClientInterface;
+  });
+  
+  redisClient = {
+    async get<T>(key: string): Promise<T | null> {
+      return await upstash.get<T>(key);
+    },
+    async set(key: string, value: unknown, options?: { ex: number }): Promise<unknown> {
+      if (options?.ex) {
+        return await upstash.set(key, value, { ex: options.ex });
+      }
+      return await upstash.set(key, value);
+    },
+    async del(...keys: string[]): Promise<unknown> {
+      if (keys.length === 0) return 0;
+      return await upstash.del(...keys);
+    },
+    async ping(): Promise<string> {
+      return await upstash.ping();
+    },
+    async zadd(key: string, score: number, member: string): Promise<number> {
+      const res = await upstash.zadd(key, { score, member });
+      return res ?? 0;
+    },
+    async zrem(key: string, ...members: string[]): Promise<number> {
+      if (members.length === 0) return 0;
+      return await upstash.zrem(key, ...members);
+    },
+    async zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number> {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+      return await upstash.zremrangebyscore(key, min as any, max as any);
+    },
+    async zrange(key: string, min: number, max: number): Promise<string[]> {
+      return await upstash.zrange<string[]>(key, min, max);
+    },
+    async zcard(key: string): Promise<number> {
+      return await upstash.zcard(key);
+    },
+    async mget<T>(keys: string[]): Promise<(T | null)[]> {
+      if (keys.length === 0) return [];
+      const res = await upstash.mget<(T | null)[]>(...keys);
+      return res || [];
+    }
+  };
 } else {
   logger.info('Using local TCP Redis client (ioredis) for caching');
   const ioRedis = new IORedis(env.REDIS_URL || 'redis://localhost:6379');
+  
   redisClient = {
     async get<T>(key: string): Promise<T | null> {
       const val = await ioRedis.get(key);
@@ -38,20 +91,48 @@ if (env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
         return val as unknown as T;
       }
     },
-    async set(key: string, value: any, options?: { ex: number }): Promise<any> {
-      const valStr = typeof value === 'object' ? JSON.stringify(value) : String(value);
+    async set(key: string, value: unknown, options?: { ex: number }): Promise<unknown> {
+      const valStr = typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value);
       if (options?.ex) {
         return await ioRedis.set(key, valStr, 'EX', options.ex);
       } else {
         return await ioRedis.set(key, valStr);
       }
     },
-    async del(...keys: string[]): Promise<any> {
+    async del(...keys: string[]): Promise<unknown> {
       if (keys.length === 0) return 0;
       return await ioRedis.del(...keys);
     },
     async ping(): Promise<string> {
       return await ioRedis.ping();
+    },
+    async zadd(key: string, score: number, member: string): Promise<number> {
+      return await ioRedis.zadd(key, score, member);
+    },
+    async zrem(key: string, ...members: string[]): Promise<number> {
+      if (members.length === 0) return 0;
+      return await ioRedis.zrem(key, ...members);
+    },
+    async zremrangebyscore(key: string, min: number | string, max: number | string): Promise<number> {
+      return await ioRedis.zremrangebyscore(key, min, max);
+    },
+    async zrange(key: string, min: number, max: number): Promise<string[]> {
+      return await ioRedis.zrange(key, min, max);
+    },
+    async zcard(key: string): Promise<number> {
+      return await ioRedis.zcard(key);
+    },
+    async mget<T>(keys: string[]): Promise<(T | null)[]> {
+      if (keys.length === 0) return [];
+      const res = await ioRedis.mget(...keys);
+      return res.map(val => {
+        if (val === null) return null;
+        try {
+          return JSON.parse(val) as T;
+        } catch {
+          return val as unknown as T;
+        }
+      });
     }
   };
 }

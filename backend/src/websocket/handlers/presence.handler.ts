@@ -1,51 +1,79 @@
 import { Server as SocketServer } from 'socket.io';
 import { AuthenticatedSocket } from '@websocket/socket.server';
+import { PresenceService } from '@websocket/presence.service';
+import { logger } from '@lib/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Presence Handler
 //
-// Tracks which users are online and which board/card they are currently viewing.
-// This powers the "avatar stack" UI showing live collaborators on a board.
-//
-// Implementation: in-memory Map for single instance.
-// For multi-instance, this must move to Redis (HSET per org, TTL-based cleanup).
+// Tracks which users are online and which board they are currently viewing.
+// Stored in Upstash/local Redis for distributed scaling and self-healing.
 // ─────────────────────────────────────────────────────────────────────────────
-
-interface PresenceEntry {
-  userId: string;
-  name: string | undefined;
-  avatarUrl: string | null | undefined;
-  boardId: string;
-  lastSeen: number;
-}
-
-// In-process presence store — keyed by socketId
-const presenceStore = new Map<string, PresenceEntry>();
 
 export const registerPresenceHandlers = (
   io: SocketServer,
   socket: AuthenticatedSocket,
 ): void => {
-  const { userId } = socket.data.user;
+  const { userId, organizationId, name, avatarUrl } = socket.data.user;
 
-  socket.on('presence:join', (payload: { boardId: string; name: string; avatarUrl?: string }) => {
-    const entry: PresenceEntry = {
+  // Client joins a specific board for presence tracking
+  socket.on('user_joined_board', async (payload: { boardId: string }) => {
+    const { boardId } = payload;
+    logger.debug({ userId, boardId }, 'Presence join board');
+
+    // Join the Socket.IO room for board messages
+    await socket.join(`board:${boardId}`);
+
+    // Update Redis presence state
+    const entry = await PresenceService.joinBoard(socket.id, boardId);
+    if (!entry) return;
+
+    // Get current active board presence
+    const boardPresence = await PresenceService.getBoardPresence(boardId);
+
+    // Broadcast updated presence list to the entire board room
+    io.to(`board:${boardId}`).emit('presence_updated', boardPresence);
+
+    // Notify other users on the board that this user joined
+    socket.to(`board:${boardId}`).emit('user_joined_board', {
       userId,
-      name: payload.name,
-      avatarUrl: payload.avatarUrl,
-      boardId: payload.boardId,
-      lastSeen: Date.now(),
-    };
+      name,
+      avatarUrl,
+      boardId,
+    });
 
-    presenceStore.set(socket.id, entry);
-
-    // Broadcast updated presence list to all board members
-    const boardPresence = getBoardPresence(payload.boardId);
-    io.to(`board:${payload.boardId}`).emit('presence:update', boardPresence);
-
-    // presence joined — client receives the updated list via presence:update
+    // Broadcast updated organization-wide presence list (reflecting board change)
+    const orgPresence = await PresenceService.getOrgPresence(organizationId);
+    io.to(`org:${organizationId}`).emit('presence_updated:org', orgPresence);
   });
 
+  // Client leaves a specific board (e.g. going back to dashboard)
+  socket.on('user_left_board', async (payload: { boardId: string }) => {
+    const { boardId } = payload;
+    logger.debug({ userId, boardId }, 'Presence leave board');
+
+    // Leave the Socket.IO room
+    await socket.leave(`board:${boardId}`);
+
+    // Update Redis presence state
+    const left = await PresenceService.leaveBoard(socket.id);
+    if (!left) return;
+
+    // Get current active board presence
+    const boardPresence = await PresenceService.getBoardPresence(boardId);
+
+    // Broadcast updated presence list to the board room
+    io.to(`board:${boardId}`).emit('presence_updated', boardPresence);
+
+    // Notify other users on the board that this user left
+    socket.to(`board:${boardId}`).emit('user_left_board', { userId });
+
+    // Broadcast updated organization presence list
+    const orgPresence = await PresenceService.getOrgPresence(organizationId);
+    io.to(`org:${organizationId}`).emit('presence_updated:org', orgPresence);
+  });
+
+  // Cursor movement (ephemeral, not persisted to Redis to maintain high performance)
   socket.on('presence:cursor', (payload: { boardId: string; x: number; y: number }) => {
     socket.to(`board:${payload.boardId}`).emit('presence:cursor', {
       userId,
@@ -53,17 +81,4 @@ export const registerPresenceHandlers = (
       y: payload.y,
     });
   });
-
-  socket.on('disconnect', () => {
-    const entry = presenceStore.get(socket.id);
-    if (entry) {
-      presenceStore.delete(socket.id);
-      const boardPresence = getBoardPresence(entry.boardId);
-      io.to(`board:${entry.boardId}`).emit('presence:update', boardPresence);
-    }
-  });
-};
-
-const getBoardPresence = (boardId: string): PresenceEntry[] => {
-  return Array.from(presenceStore.values()).filter((e) => e.boardId === boardId);
 };

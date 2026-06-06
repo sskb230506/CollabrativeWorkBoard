@@ -5,6 +5,8 @@ import { useBoards } from '@features/boards/hooks/useBoards';
 import { useActiveOrg } from '@hooks/useActiveOrg';
 import { organizationsApi } from '@api/organizations.api';
 import { cn } from '@utils/cn';
+import { useSocket } from '@context/SocketContext';
+import { Avatar } from '@components/ui/Avatar';
 import type { Board } from '@appTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +30,7 @@ export const Sidebar: React.FC = () => {
   });
 
   const activeOrg = orgs?.find((o) => o.id === activeOrgId);
+  const { orgPresence } = useSocket();
 
   return (
     <aside className="flex h-full w-60 flex-shrink-0 flex-col border-r border-surface-800 bg-surface-950">
@@ -86,6 +89,42 @@ export const Sidebar: React.FC = () => {
                 </NavLink>
               </li>
             ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Online Collaborators */}
+      {orgPresence && orgPresence.length > 0 && (
+        <div className="mt-6 px-3 border-t border-surface-800/50 pt-4">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <p className="text-xs font-semibold uppercase tracking-widest text-surface-500">
+              Online ({orgPresence.length})
+            </p>
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-priority-low opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-priority-low"></span>
+            </span>
+          </div>
+          <ul className="flex flex-col gap-1.5 overflow-y-auto max-h-48 pr-1">
+            {orgPresence.map((p) => {
+              const viewingBoard = boards?.find((b) => b.id === p.boardId);
+              return (
+                <li key={p.userId} className="flex items-center gap-2 px-1 py-0.5 animate-fadeIn">
+                  <div className="relative">
+                    <Avatar name={p.name ?? 'Unknown'} avatarUrl={p.avatarUrl} size="xs" />
+                    <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-priority-low ring-1 ring-surface-950" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-xs font-medium text-surface-300 truncate">
+                      {p.name}
+                    </span>
+                    <span className="text-[10px] text-surface-500 truncate">
+                      {viewingBoard ? `Viewing ${viewingBoard.name}` : 'Browsing'}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

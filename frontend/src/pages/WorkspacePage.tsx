@@ -5,7 +5,6 @@ import { useLists, useCreateList } from '@features/workspace/hooks/useLists';
 import { useCards, useMoveCard } from '@features/workspace/hooks/useCards';
 import { useBoardSync } from '@features/workspace/hooks/useBoardSync';
 import { useSocket } from '@context/SocketContext';
-import { useAuth } from '@context/AuthContext';
 import { useActiveOrg } from '@hooks/useActiveOrg';
 import { useEffect, useState } from 'react';
 import { ListColumn } from '@features/workspace/components/ListColumn';
@@ -31,7 +30,6 @@ import type { List, Card } from '@appTypes';
 export const WorkspacePage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
   const { activeOrgId } = useActiveOrg();
-  const { user } = useAuth();
   const { joinBoard, leaveBoard, presence } = useSocket();
   const { addRecentBoard } = useRecentBoards();
 
@@ -74,10 +72,10 @@ export const WorkspacePage: React.FC = () => {
 
   // Join/leave board room
   useEffect(() => {
-    if (!bId || !user) return;
-    joinBoard(bId, { name: user.name, avatarUrl: user.avatarUrl });
+    if (!bId) return;
+    joinBoard(bId);
     return () => leaveBoard(bId);
-  }, [bId, user, joinBoard, leaveBoard]);
+  }, [bId, joinBoard, leaveBoard]);
 
   // Add list inline state
   const [addingList, setAddingList] = useState(false);
@@ -172,17 +170,29 @@ export const WorkspacePage: React.FC = () => {
               <p className="text-xs text-surface-400">{board.description}</p>
             )}
           </div>
-          {/* Presence avatars */}
-          {presence.length > 0 && (
-            <AvatarGroup
-              users={presence.map((p) => ({
-                id: p.userId,
-                name: p.name ?? 'Unknown',
-                avatarUrl: p.avatarUrl,
-              }))}
-              size="sm"
-            />
-          )}
+          {/* Presence avatars & online count */}
+          <div className="flex items-center gap-4">
+            {presence.length > 0 && (
+              <div className="flex items-center gap-2.5 rounded-full border border-surface-850 bg-surface-900/60 px-3.5 py-1.5 shadow-sm backdrop-blur-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-priority-low opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-priority-low"></span>
+                </span>
+                <span className="text-xs font-semibold text-surface-300">
+                  {presence.length} {presence.length === 1 ? 'user' : 'users'} active
+                </span>
+                <div className="h-3 w-px bg-surface-700/60 mx-0.5" />
+                <AvatarGroup
+                  users={presence.map((p) => ({
+                    id: p.userId,
+                    name: p.name ?? 'Unknown',
+                    avatarUrl: p.avatarUrl,
+                  }))}
+                  size="xs"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Kanban scroll area */}

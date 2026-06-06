@@ -29,7 +29,8 @@ interface SocketContextValue {
   socket: Socket | null;
   isConnected: boolean;
   presence: PresenceEntry[];
-  joinBoard: (boardId: string, meta: { name: string; avatarUrl?: string | null | undefined }) => void;
+  orgPresence: PresenceEntry[];
+  joinBoard: (boardId: string) => void;
   leaveBoard: (boardId: string) => void;
 }
 
@@ -47,6 +48,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [presence, setPresence] = useState<PresenceEntry[]>([]);
+  const [orgPresence, setOrgPresence] = useState<PresenceEntry[]>([]);
 
   useEffect(() => {
     if (!organizationId) return;
@@ -66,7 +68,8 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
 
     s.on('connect', () => setIsConnected(true));
     s.on('disconnect', () => setIsConnected(false));
-    s.on('presence:update', (entries: PresenceEntry[]) => setPresence(entries));
+    s.on('presence_updated', (entries: PresenceEntry[]) => setPresence(entries));
+    s.on('presence_updated:org', (entries: PresenceEntry[]) => setOrgPresence(entries));
 
     s.on('connect_error', async (err) => {
       if (
@@ -90,24 +93,29 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
       setSocket(null);
       setIsConnected(false);
       setPresence([]);
+      setOrgPresence([]);
     };
   }, [organizationId]);
 
   const joinBoard = useCallback(
-    (boardId: string, meta: { name: string; avatarUrl?: string | null | undefined }) => {
+    (boardId: string) => {
       socket?.emit('board:join', boardId);
-      socket?.emit('presence:join', { boardId, ...meta });
+      socket?.emit('user_joined_board', { boardId });
     },
     [socket],
   );
 
-  const leaveBoard = useCallback((boardId: string) => {
-    socket?.emit('board:leave', boardId);
-  }, [socket]);
+  const leaveBoard = useCallback(
+    (boardId: string) => {
+      socket?.emit('board:leave', boardId);
+      socket?.emit('user_left_board', { boardId });
+    },
+    [socket],
+  );
 
   return (
     <SocketContext.Provider
-      value={{ socket, isConnected, presence, joinBoard, leaveBoard }}
+      value={{ socket, isConnected, presence, orgPresence, joinBoard, leaveBoard }}
     >
       {children}
     </SocketContext.Provider>

@@ -8,6 +8,7 @@ import { JwtAccessPayload, SocketUser } from '@appTypes';
 import { registerBoardHandlers } from '@websocket/handlers/board.handler';
 import { registerCardHandlers } from '@websocket/handlers/card.handler';
 import { registerPresenceHandlers } from '@websocket/handlers/presence.handler';
+import { PresenceService } from '@websocket/presence.service';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Socket.IO Server Setup
@@ -77,7 +78,7 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
 
         const user = await prisma.user.findUnique({
           where: { id: payload.sub },
-          select: { id: true, status: true },
+          select: { id: true, status: true, name: true, avatarUrl: true },
         });
 
         if (!user || user.status !== 'ACTIVE') {
@@ -104,6 +105,8 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
         (socket as AuthenticatedSocket).data.user = {
           userId: user.id,
           organizationId,
+          name: user.name,
+          avatarUrl: user.avatarUrl,
         };
 
         next();
@@ -117,12 +120,24 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
   // ── Connection Handler ───────────────────────────────────────────────────
   io.on('connection', (socket) => {
     const authSocket = socket as AuthenticatedSocket;
-    const { userId, organizationId } = authSocket.data.user;
+    const { userId, organizationId, name, avatarUrl } = authSocket.data.user;
 
     logger.info({ socketId: socket.id, userId, organizationId }, 'Socket connected');
 
     // Join organization room for org-wide broadcasts
     void socket.join(`org:${organizationId}`);
+
+    // Set user presence in Redis on connect and broadcast
+    void (async () => {
+      await PresenceService.setUserPresence(socket.id, {
+        userId,
+        name,
+        avatarUrl,
+        organizationId,
+      });
+      const orgPresence = await PresenceService.getOrgPresence(organizationId);
+      io.to(`org:${organizationId}`).emit('presence_updated:org', orgPresence);
+    })();
 
     // Register feature-specific handlers
     registerBoardHandlers(io, authSocket);
@@ -131,6 +146,22 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
 
     socket.on('disconnect', (reason) => {
       logger.info({ socketId: socket.id, userId, reason }, 'Socket disconnected');
+      
+      void (async () => {
+        const cleaned = await PresenceService.removeUserPresence(socket.id);
+        if (cleaned) {
+          // Broadcast organization presence update
+          const orgPresence = await PresenceService.getOrgPresence(cleaned.organizationId);
+          io.to(`org:${cleaned.organizationId}`).emit('presence_updated:org', orgPresence);
+
+          // If they were on a board, broadcast board presence update
+          if (cleaned.boardId) {
+            const boardPresence = await PresenceService.getBoardPresence(cleaned.boardId);
+            io.to(`board:${cleaned.boardId}`).emit('presence_updated', boardPresence);
+            io.to(`board:${cleaned.boardId}`).emit('user_left_board', { userId: cleaned.userId });
+          }
+        }
+      })();
     });
 
     socket.on('error', (err) => {
