@@ -28,6 +28,15 @@ export interface AuthenticatedSocket extends Socket {
   };
 }
 
+let ioInstance: SocketServer | null = null;
+
+export const getIO = (): SocketServer => {
+  if (!ioInstance) {
+    throw new Error('Socket.IO server has not been initialized');
+  }
+  return ioInstance;
+};
+
 export const initSocketServer = (httpServer: HttpServer): SocketServer => {
   const io = new SocketServer(httpServer, {
     cors: {
@@ -44,6 +53,8 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
     pingTimeout: 60_000,
     pingInterval: 25_000,
   });
+
+  ioInstance = io;
 
   // ── Authentication Middleware ────────────────────────────────────────────
   io.use((socket, next) => {

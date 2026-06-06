@@ -41,3 +41,33 @@ export const registerBoardHandlers = (
     socket.to(`board:${boardId}`).emit('board:user:left', { userId, boardId });
   });
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Server-side list emitter helpers
+// Called by REST controllers to push changes to connected clients.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const emitListCreated = (
+  io: SocketServer,
+  boardId: string,
+  data: unknown,
+): void => {
+  io.to(`board:${boardId}`).emit(BOARD_EVENTS.LIST_CREATED, data);
+};
+
+export const emitListUpdated = (
+  io: SocketServer,
+  boardId: string,
+  data: unknown,
+): void => {
+  io.to(`board:${boardId}`).emit(BOARD_EVENTS.LIST_UPDATED, data);
+};
+
+export const emitListDeleted = (
+  io: SocketServer,
+  boardId: string,
+  listId: string,
+): void => {
+  io.to(`board:${boardId}`).emit(BOARD_EVENTS.LIST_DELETED, { listId });
+};
+

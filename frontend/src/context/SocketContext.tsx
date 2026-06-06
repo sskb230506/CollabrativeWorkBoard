@@ -6,7 +6,8 @@ import React, {
   useState,
 } from 'react';
 import { io, Socket } from 'socket.io-client';
-import { getAccessToken } from '@api/client';
+import { getAccessToken, setAccessToken } from '@api/client';
+import { authApi } from '@api/auth.api';
 import type { PresenceEntry } from '@appTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,6 +67,23 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({
     s.on('connect', () => setIsConnected(true));
     s.on('disconnect', () => setIsConnected(false));
     s.on('presence:update', (entries: PresenceEntry[]) => setPresence(entries));
+
+    s.on('connect_error', async (err) => {
+      if (
+        err.message === 'Invalid or expired token' ||
+        err.message === 'Authentication failed' ||
+        err.message === 'Authentication token required'
+      ) {
+        try {
+          const { accessToken } = await authApi.refresh();
+          setAccessToken(accessToken);
+          s.auth = { token: accessToken, organizationId };
+          s.connect();
+        } catch {
+          window.dispatchEvent(new CustomEvent('auth:logout'));
+        }
+      }
+    });
 
     return () => {
       s.disconnect();

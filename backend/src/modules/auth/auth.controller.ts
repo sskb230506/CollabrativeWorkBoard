@@ -54,7 +54,9 @@ export class AuthController {
   });
 
   refresh = asyncHandler(async (req: Request, res: Response) => {
-    const refreshToken = (req.body?.refreshToken || req.cookies?.refreshToken) as string;
+    const body = req.body as Record<string, unknown> | undefined;
+    const cookies = req.cookies as Record<string, unknown> | undefined;
+    const refreshToken = (body?.refreshToken || cookies?.refreshToken) as string | undefined;
     if (!refreshToken) {
       throw new UnauthorizedError('Refresh token is required');
     }
@@ -71,7 +73,9 @@ export class AuthController {
   });
 
   logout = asyncHandler(async (req: Request, res: Response) => {
-    const refreshToken = (req.body?.refreshToken || req.cookies?.refreshToken) as string;
+    const body = req.body as Record<string, unknown> | undefined;
+    const cookies = req.cookies as Record<string, unknown> | undefined;
+    const refreshToken = (body?.refreshToken || cookies?.refreshToken) as string | undefined;
     if (refreshToken) {
       await this.authService.logout(refreshToken);
     }

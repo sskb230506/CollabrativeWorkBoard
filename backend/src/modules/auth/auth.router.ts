@@ -5,7 +5,7 @@ import { AuthRepository } from './auth.repository';
 import { validate } from '@middleware/validate.middleware';
 import { authenticate } from '@middleware/auth.middleware';
 import { authLimiter, strictLimiter } from '@middleware/rateLimiter.middleware';
-import { RegisterSchema, LoginSchema, RefreshTokenSchema } from './auth.schema';
+import { RegisterSchema, LoginSchema } from './auth.schema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Auth Router — Dependency Injection (manual, no DI container)
