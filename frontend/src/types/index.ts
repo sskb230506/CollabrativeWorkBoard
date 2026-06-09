@@ -188,3 +188,26 @@ export interface BoardWithLists extends Board {
 export interface ListWithCards extends List {
   cards: Card[];
 }
+
+// ── Notification ─────────────────────────────────────────────────────────────
+
+export type NotificationType = 'assignment' | 'mention' | 'due_date_reminder';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  organizationId: string;
+  type: NotificationType;
+  title: Nullable<string>;
+  body: string;
+  isRead: boolean;
+  metadata: Nullable<{
+    cardId?: string;
+    boardId?: string;
+    commentId?: string;
+    dueDate?: string;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+

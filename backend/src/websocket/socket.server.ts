@@ -128,6 +128,9 @@ export const initSocketServer = (httpServer: HttpServer): SocketServer => {
     // Join organization room for org-wide broadcasts
     void socket.join(`org:${organizationId}`);
 
+    // Join user-specific room for notifications
+    void socket.join(`user:${userId}`);
+
     // Set user presence in Redis on connect and broadcast
     void (async () => {
       await PresenceService.setUserPresence(socket.id, {

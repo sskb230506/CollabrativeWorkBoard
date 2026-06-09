@@ -21,6 +21,7 @@ export class CardsController {
       req.organizationId!,
       boardId,
       req.body as CreateCardInput,
+      (req.user as { id: string }).id,
     );
     try {
       const io = getIO();
@@ -58,6 +59,7 @@ export class CardsController {
       boardId,
       cardId,
       req.body as UpdateCardInput,
+      (req.user as { id: string }).id,
     );
     try {
       const io = getIO();

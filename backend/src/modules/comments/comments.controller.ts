@@ -4,6 +4,8 @@ import { ForbiddenError } from '../../lib/errors';
 import { getIO } from '../../websocket/socket.server';
 import { asyncHandler, sendSuccess, sendCreated } from '../../lib/api.helpers';
 import { activitiesService } from '../activities/activities.service';
+import { enqueueNotification } from '../../queue/queues';
+import { prisma } from '../../prisma/client';
 
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
@@ -36,6 +38,46 @@ export class CommentsController {
     // Broadcast comment_created event to board room
     const io = getIO();
     io.to(`board:${boardId}`).emit('comment_created', comment);
+
+    // Parse comment body for mentions (e.g. @john, @johndoe, @john.doe)
+    const mentions = body.match(/@([a-zA-Z0-9_.-]+)/g);
+    if (mentions && mentions.length > 0) {
+      const orgId = req.organizationId!;
+      const members = await prisma.organizationMember.findMany({
+        where: { organizationId: orgId },
+        include: { user: true },
+      });
+
+      const mentionNames = mentions.map((m) => m.slice(1).toLowerCase());
+
+      for (const member of members) {
+        // Do not notify self
+        if (member.userId === user.id) continue;
+
+        const nameNormalized = member.user.name.toLowerCase().replace(/\s+/g, '');
+        const firstNameNormalized = member.user.name.toLowerCase().split(' ')[0];
+        const emailPrefix = member.user.email.toLowerCase().split('@')[0];
+
+        const isMentioned = mentionNames.some(
+          (mentionName) =>
+            nameNormalized === mentionName ||
+            firstNameNormalized === mentionName ||
+            emailPrefix === mentionName,
+        );
+
+        if (isMentioned) {
+          await enqueueNotification({
+            userId: member.userId,
+            type: 'mention',
+            payload: {
+              cardId,
+              mentionerId: user.id,
+              commentId: comment.id,
+            },
+          });
+        }
+      }
+    }
 
     await activitiesService.log({
       organizationId: req.params['organizationId'] || req.organizationId!,

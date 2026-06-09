@@ -1,22 +1,18 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { BaseRepository } from '@repositories/base.repository';
 import { Nullable } from '@appTypes';
 
-type DbCard = Awaited<
-  ReturnType<
-    PrismaClient['card']['findUniqueOrThrow'] & {
+export type DbCard = Prisma.CardGetPayload<{
+  include: {
+    assignees: {
       include: {
-        assignees: {
-          include: {
-            user: {
-              select: { id: true; name: true; email: true; avatarUrl: true };
-            };
-          };
+        user: {
+          select: { id: true; name: true; email: true; avatarUrl: true };
         };
       };
-    }
-  >
->;
+    };
+  };
+}>;
 
 type CardCreateInput = {
   listId: string;

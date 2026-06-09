@@ -21,6 +21,7 @@ import { logger } from '@lib/logger';
 import { connectDatabase, disconnectDatabase } from './prisma/client';
 import { initSocketServer } from '@websocket/socket.server';
 import { activityWorker } from '@queue/workers/activity.worker';
+import { notificationWorker } from '@queue/workers/notification.worker';
 import { closeQueues } from '@queue/queues';
 
 const bootstrap = async (): Promise<void> => {
@@ -63,6 +64,7 @@ const bootstrap = async (): Promise<void> => {
 
     // Close BullMQ workers and queues
     await activityWorker.close();
+    await notificationWorker.close();
     await closeQueues();
     logger.info('BullMQ workers and queues closed');
 

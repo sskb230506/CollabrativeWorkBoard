@@ -60,6 +60,7 @@ model User {
   assignedCards  CardAssignee[]
   comments       Comment[]
   activityLogs   ActivityLog[]
+  notifications  Notification[]
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
@@ -91,6 +92,7 @@ model Organization {
   boards      Board[]
   invitations Invitation[]
   activityLogs ActivityLog[]
+  notifications Notification[]
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -287,3 +289,27 @@ model ActivityLog {
   @@index([cardId])
   @@map("activity_logs")
 }
+
+// ─────────────────────────────────────────────
+// NOTIFICATION
+// ─────────────────────────────────────────────
+
+model Notification {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  type           String       // "assignment", "mention", "due_date_reminder"
+  title          String?
+  body           String
+  isRead         Boolean      @default(false)
+  metadata       Json?        // arbitrary payload (e.g. boardId, cardId, commentId)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@map("notifications")
+}
+

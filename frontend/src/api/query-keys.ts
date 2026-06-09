@@ -45,4 +45,9 @@ export const queryKeys = {
     all: (orgId: string, boardId: string, cardId: string) =>
       ['comments', orgId, boardId, cardId] as const,
   },
+
+  // Notifications
+  notifications: {
+    all: (orgId: string) => ['notifications', orgId] as const,
+  },
 } as const;

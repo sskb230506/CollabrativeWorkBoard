@@ -1,8 +1,9 @@
-import { CardsRepository } from './cards.repository';
+import { CardsRepository, DbCard } from './cards.repository';
 import { CreateCardInput, UpdateCardInput } from './cards.schema';
 import { NotFoundError, BadRequestError } from '@lib/errors';
 import { Card } from '@prisma/client';
 import { prisma } from '../../prisma/client';
+import { enqueueNotification, notificationQueue } from '../../queue/queues';
 
 export class CardsService {
   constructor(private readonly cardsRepo: CardsRepository) {}
@@ -67,6 +68,7 @@ export class CardsService {
     organizationId: string,
     boardId: string,
     input: CreateCardInput,
+    userId: string,
   ): Promise<Card> {
     await this.verifyBoardExists(boardId, organizationId);
     await this.verifyListScope(input.listId, boardId, organizationId);
@@ -98,7 +100,37 @@ export class CardsService {
       coverUrl: input.coverUrl ?? null,
     };
 
-    return this.cardsRepo.createCard(createData, assigneeIds);
+    const card = await this.cardsRepo.createCard(createData, assigneeIds);
+
+    // Enqueue assignment notifications (excluding the creator)
+    const otherAssignees = assigneeIds.filter((id) => id !== userId);
+    for (const assigneeId of otherAssignees) {
+      await enqueueNotification({
+        userId: assigneeId,
+        type: 'assignment',
+        payload: { cardId: card.id, assignerId: userId },
+      });
+    }
+
+    // Schedule due date reminder if due date is set
+    if (input.dueDate) {
+      const dueDateObj = new Date(input.dueDate);
+      const timeUntilDue = dueDateObj.getTime() - Date.now();
+      if (timeUntilDue > 0) {
+        const delay = Math.max(0, timeUntilDue - 24 * 60 * 60 * 1000);
+        await notificationQueue.add(
+          'send-notification',
+          {
+            userId: '',
+            type: 'due_date_reminder',
+            payload: { cardId: card.id, dueDate: dueDateObj.toISOString() },
+          },
+          { delay, jobId: `due-reminder-${card.id}` },
+        );
+      }
+    }
+
+    return card;
   }
 
   /**
@@ -112,7 +144,7 @@ export class CardsService {
   /**
    * Retrieves card detail scoped to tenant
    */
-  async getCard(organizationId: string, boardId: string, cardId: string): Promise<Card> {
+  async getCard(organizationId: string, boardId: string, cardId: string): Promise<DbCard> {
     await this.verifyBoardExists(boardId, organizationId);
     const card = await this.cardsRepo.findByIdScoped(cardId, boardId, organizationId);
     if (!card) {
@@ -129,9 +161,10 @@ export class CardsService {
     boardId: string,
     cardId: string,
     input: UpdateCardInput,
+    userId: string,
   ): Promise<Card> {
     // Verify target card exists in tenant
-    await this.getCard(organizationId, boardId, cardId);
+    const existingCard = await this.getCard(organizationId, boardId, cardId);
 
     if (input.listId !== undefined) {
       await this.verifyListScope(input.listId, boardId, organizationId);
@@ -173,13 +206,58 @@ export class CardsService {
       updateData.coverUrl = input.coverUrl;
     }
 
-    return this.cardsRepo.updateScoped(
+    const updatedCard = await this.cardsRepo.updateScoped(
       cardId,
       boardId,
       organizationId,
       updateData,
       input.assigneeIds,
     );
+
+    // If assignees were modified, notify newly assigned users (excluding self)
+    if (input.assigneeIds !== undefined) {
+      const currentAssigneeIds = existingCard.assignees.map((a) => a.userId);
+      const newlyAssigned = input.assigneeIds.filter(
+        (id) => !currentAssigneeIds.includes(id) && id !== userId,
+      );
+
+      for (const assigneeId of newlyAssigned) {
+        await enqueueNotification({
+          userId: assigneeId,
+          type: 'assignment',
+          payload: { cardId, assignerId: userId },
+        });
+      }
+    }
+
+    // If due date was updated or removed, update the delayed job
+    if (input.dueDate !== undefined) {
+      // Clear existing job
+      const existingJob = await notificationQueue.getJob(`due-reminder-${cardId}`);
+      if (existingJob) {
+        await existingJob.remove();
+      }
+
+      // Schedule new one if due date is not removed
+      if (input.dueDate) {
+        const dueDateObj = new Date(input.dueDate);
+        const timeUntilDue = dueDateObj.getTime() - Date.now();
+        if (timeUntilDue > 0) {
+          const delay = Math.max(0, timeUntilDue - 24 * 60 * 60 * 1000);
+          await notificationQueue.add(
+            'send-notification',
+            {
+              userId: '',
+              type: 'due_date_reminder',
+              payload: { cardId, dueDate: dueDateObj.toISOString() },
+            },
+            { delay, jobId: `due-reminder-${cardId}` },
+          );
+        }
+      }
+    }
+
+    return updatedCard;
   }
 
   /**

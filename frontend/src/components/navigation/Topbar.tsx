@@ -4,6 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { Avatar } from '@components/ui/Avatar';
 import { useSocket } from '@context/SocketContext';
+import { NotificationCenter } from '@features/workspace/components/NotificationCenter';
 import type { User } from '@appTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,53 +56,57 @@ export const Topbar: React.FC<TopbarProps> = ({ user }) => {
         </span>
       </div>
 
-      {/* Right: User Menu Dropdown */}
-      {user && (
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-surface-900 transition-colors focus:outline-none"
-            aria-expanded={isOpen}
-            aria-haspopup="true"
-          >
-            <Avatar name={user.name} avatarUrl={user.avatarUrl} size="sm" />
-            <span className="hidden sm:inline text-sm font-medium text-surface-200">{user.name}</span>
-          </button>
+      {/* Right: Actions & User Menu */}
+      <div className="flex items-center gap-3">
+        {user && <NotificationCenter />}
 
-          {/* Dropdown Menu */}
-          {isOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-xl border border-surface-800 bg-surface-900 shadow-2xl py-1 text-left focus:outline-none z-50">
-              {/* User info */}
-              <div className="px-4 py-2.5 border-b border-surface-800">
-                <p className="text-sm font-semibold text-surface-100 truncate">{user.name}</p>
-                <p className="text-xs text-surface-400 truncate mt-0.5">{user.email}</p>
-              </div>
+        {user && (
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="flex items-center gap-2 rounded-xl p-1.5 hover:bg-surface-900 transition-colors focus:outline-none"
+              aria-expanded={isOpen}
+              aria-haspopup="true"
+            >
+              <Avatar name={user.name} avatarUrl={user.avatarUrl} size="sm" />
+              <span className="hidden sm:inline text-sm font-medium text-surface-200">{user.name}</span>
+            </button>
 
-              {/* Actions */}
-              <div className="py-1">
-                <Link
-                  to="/settings"
-                  onClick={() => setIsOpen(false)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800 hover:text-surface-100 transition-colors"
-                >
-                  <Settings size={15} />
-                  Settings
-                </Link>
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    void handleLogout();
-                  }}
-                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800 hover:text-red-400 transition-colors text-left"
-                >
-                  <LogOut size={15} />
-                  Sign out
-                </button>
+            {/* Dropdown Menu */}
+            {isOpen && (
+              <div className="absolute right-0 mt-2 w-56 rounded-xl border border-surface-800 bg-surface-900 shadow-2xl py-1 text-left focus:outline-none z-50">
+                {/* User info */}
+                <div className="px-4 py-2.5 border-b border-surface-800">
+                  <p className="text-sm font-semibold text-surface-100 truncate">{user.name}</p>
+                  <p className="text-xs text-surface-400 truncate mt-0.5">{user.email}</p>
+                </div>
+
+                {/* Actions */}
+                <div className="py-1">
+                  <Link
+                    to="/settings"
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800 hover:text-surface-100 transition-colors"
+                  >
+                    <Settings size={15} />
+                    Settings
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setIsOpen(false);
+                      void handleLogout();
+                    }}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-surface-300 hover:bg-surface-800 hover:text-red-400 transition-colors text-left"
+                  >
+                    <LogOut size={15} />
+                    Sign out
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </header>
   );
 };

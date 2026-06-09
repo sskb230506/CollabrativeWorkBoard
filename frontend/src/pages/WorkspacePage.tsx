@@ -1,4 +1,4 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Clock } from 'lucide-react';
 import { useBoard } from '@features/boards/hooks/useBoards';
 import { useLists, useCreateList } from '@features/workspace/hooks/useLists';
@@ -13,6 +13,7 @@ import { Spinner } from '@components/ui/Spinner';
 import { AvatarGroup } from '@components/ui/Avatar';
 import { useRecentBoards } from '@hooks/useRecentBoards';
 import { ActivityFeedPanel } from '@features/workspace/components/ActivityFeedPanel';
+import { CardDetailsModal } from '@features/workspace/components/CardDetailsModal';
 
 import {
   DndContext,
@@ -30,9 +31,11 @@ import type { List, Card } from '@appTypes';
 
 export const WorkspacePage: React.FC = () => {
   const { boardId } = useParams<{ boardId: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { activeOrgId } = useActiveOrg();
   const { joinBoard, leaveBoard, presence } = useSocket();
   const { addRecentBoard } = useRecentBoards();
+  const selectedCardId = searchParams.get('cardId');
 
   const orgId = activeOrgId ?? '';
   const bId   = boardId ?? '';
@@ -263,6 +266,23 @@ export const WorkspacePage: React.FC = () => {
         isOpen={isActivityOpen}
         onClose={() => setIsActivityOpen(false)}
       />
+      {selectedCardId && (() => {
+        const selectedCard = cards.find((c) => c.id === selectedCardId);
+        if (!selectedCard) return null;
+        return (
+          <CardDetailsModal
+            card={selectedCard}
+            orgId={orgId}
+            boardId={bId}
+            isOpen={true}
+            onClose={() => {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('cardId');
+              setSearchParams(nextParams);
+            }}
+          />
+        );
+      })()}
     </DndContext>
   );
 };
