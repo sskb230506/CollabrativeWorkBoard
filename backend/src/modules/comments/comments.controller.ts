@@ -29,7 +29,7 @@ export class CommentsController {
     if (!cardId || !body) {
       throw new Error('cardId and body are required');
     }
-    const comment = await this.commentsService.create({
+    const comment = await this.commentsService.create(req.organizationId!, {
       cardId,
       userId: user.id,
       body,

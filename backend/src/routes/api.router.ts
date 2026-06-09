@@ -8,6 +8,7 @@ import { cardsRouter } from '@modules/cards/cards.router';
 import { commentsRouter } from '@modules/comments/comments.router';
 import { activitiesRouter } from '@modules/activities/activities.router';
 import { notificationsRouter } from '@modules/notifications/notifications.router';
+import { searchRouter } from '@modules/search/search.router';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // API Router (v1)
@@ -30,5 +31,7 @@ apiRouter.use('/organizations', cardsRouter);
 apiRouter.use('/organizations', commentsRouter);
 apiRouter.use('/organizations', activitiesRouter);
 apiRouter.use('/organizations', notificationsRouter);
+apiRouter.use('/organizations', searchRouter);
+
 
 

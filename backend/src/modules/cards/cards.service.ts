@@ -4,6 +4,7 @@ import { NotFoundError, BadRequestError } from '@lib/errors';
 import { Card } from '@prisma/client';
 import { prisma } from '../../prisma/client';
 import { enqueueNotification, notificationQueue } from '../../queue/queues';
+import { invalidateSearchCache } from '@lib/redis';
 
 export class CardsService {
   constructor(private readonly cardsRepo: CardsRepository) {}
@@ -130,6 +131,7 @@ export class CardsService {
       }
     }
 
+    await invalidateSearchCache(organizationId);
     return card;
   }
 
@@ -257,6 +259,7 @@ export class CardsService {
       }
     }
 
+    await invalidateSearchCache(organizationId);
     return updatedCard;
   }
 
@@ -266,6 +269,7 @@ export class CardsService {
   async deleteCard(organizationId: string, boardId: string, cardId: string): Promise<void> {
     await this.getCard(organizationId, boardId, cardId); // throws if not found
     await this.cardsRepo.deleteScoped(cardId, boardId, organizationId);
+    await invalidateSearchCache(organizationId);
   }
 
   /**
@@ -281,9 +285,11 @@ export class CardsService {
     await this.getCard(organizationId, boardId, cardId); // throws if not found
     await this.verifyListScope(targetListId, boardId, organizationId);
 
-    return this.cardsRepo.updateScoped(cardId, boardId, organizationId, {
+    const result = await this.cardsRepo.updateScoped(cardId, boardId, organizationId, {
       listId: targetListId,
       position,
     });
+    await invalidateSearchCache(organizationId);
+    return result;
   }
 }

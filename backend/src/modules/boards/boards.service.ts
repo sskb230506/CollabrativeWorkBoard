@@ -2,6 +2,7 @@ import { BoardsRepository } from './boards.repository';
 import { CreateBoardInput, UpdateBoardInput } from './boards.schema';
 import { NotFoundError } from '@lib/errors';
 import { Board } from '@prisma/client';
+import { invalidateSearchCache } from '@lib/redis';
 
 export class BoardsService {
   constructor(private readonly boardsRepo: BoardsRepository) {}
@@ -18,7 +19,9 @@ export class BoardsService {
       visibility: input.visibility,
     };
 
-    return this.boardsRepo.create(createData);
+    const board = await this.boardsRepo.create(createData);
+    await invalidateSearchCache(organizationId);
+    return board;
   }
 
   /**
@@ -69,7 +72,9 @@ export class BoardsService {
       updateData.visibility = input.visibility;
     }
 
-    return this.boardsRepo.updateScoped(boardId, organizationId, updateData);
+    const board = await this.boardsRepo.updateScoped(boardId, organizationId, updateData);
+    await invalidateSearchCache(organizationId);
+    return board;
   }
 
   /**
@@ -78,5 +83,6 @@ export class BoardsService {
   async deleteBoard(organizationId: string, boardId: string): Promise<void> {
     await this.getBoard(organizationId, boardId); // throws if not found/accessible
     await this.boardsRepo.deleteScoped(boardId, organizationId);
+    await invalidateSearchCache(organizationId);
   }
 }

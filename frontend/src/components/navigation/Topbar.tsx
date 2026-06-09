@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, Search } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@context/AuthContext';
 import { Avatar } from '@components/ui/Avatar';
 import { useSocket } from '@context/SocketContext';
 import { NotificationCenter } from '@features/workspace/components/NotificationCenter';
+import { SearchDialog } from '@features/workspace/components/SearchDialog';
 import type { User } from '@appTypes';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -23,12 +24,8 @@ export const Topbar: React.FC<TopbarProps> = ({ user }) => {
   const { isConnected } = useSocket();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleLogout = async () => {
-    await logout();
-    navigate('/login', { replace: true });
-  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,6 +37,23 @@ export const Topbar: React.FC<TopbarProps> = ({ user }) => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Keyboard shortcut listener for search (Ctrl+K or Cmd+K)
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+        event.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-surface-800 bg-surface-950/80 px-6 backdrop-blur-sm relative z-50">
@@ -58,6 +72,20 @@ export const Topbar: React.FC<TopbarProps> = ({ user }) => {
 
       {/* Right: Actions & User Menu */}
       <div className="flex items-center gap-3">
+        {user && (
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            aria-label="Search workspace"
+            className="flex items-center gap-2 rounded-xl border border-surface-800 bg-surface-900/50 px-3 py-1.5 text-xs text-surface-400 hover:bg-surface-800 hover:text-surface-200 transition-all md:w-48 lg:w-64 text-left focus:outline-none"
+          >
+            <Search size={14} className="text-surface-400" />
+            <span className="hidden md:inline flex-1">Search workspace...</span>
+            <kbd className="hidden md:inline-flex h-4 items-center gap-0.5 rounded border border-surface-700 bg-surface-850 px-1 font-sans text-[10px] text-surface-400">
+              <span className="text-[9px]">Ctrl </span>K
+            </kbd>
+          </button>
+        )}
+
         {user && <NotificationCenter />}
 
         {user && (
@@ -107,6 +135,8 @@ export const Topbar: React.FC<TopbarProps> = ({ user }) => {
           </div>
         )}
       </div>
+
+      <SearchDialog isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </header>
   );
 };

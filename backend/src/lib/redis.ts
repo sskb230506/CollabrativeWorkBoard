@@ -187,3 +187,14 @@ export const cache = {
    */
   key: (...parts: string[]): string => parts.join(':'),
 };
+
+/**
+ * Invalidates the search cache for a specific organization by updating its search version.
+ */
+export const invalidateSearchCache = async (organizationId: string): Promise<void> => {
+  try {
+    await redis.set(cache.key('org', organizationId, 'search', 'version'), Date.now().toString());
+  } catch (err) {
+    logger.error({ err, organizationId }, 'Failed to invalidate search cache');
+  }
+};

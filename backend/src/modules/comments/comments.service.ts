@@ -1,5 +1,6 @@
 import { CommentsRepository, DbComment, CommentCreateInput, CommentUpdateInput } from './comments.repository';
 import { NotFoundError, ForbiddenError } from '../../lib/errors';
+import { invalidateSearchCache } from '@lib/redis';
 
 export class CommentsService {
   constructor(private readonly commentsRepository: CommentsRepository) {}
@@ -16,8 +17,10 @@ export class CommentsService {
     return comment;
   }
 
-  async create(data: CommentCreateInput): Promise<DbComment> {
-    return this.commentsRepository.create(data);
+  async create(orgId: string, data: CommentCreateInput): Promise<DbComment> {
+    const comment = await this.commentsRepository.create(data);
+    await invalidateSearchCache(orgId);
+    return comment;
   }
 
   async update(
@@ -35,7 +38,9 @@ export class CommentsService {
     if (comment.userId !== userId) {
       throw new ForbiddenError('You can only edit your own comments');
     }
-    return this.commentsRepository.update(id, data);
+    const updated = await this.commentsRepository.update(id, data);
+    await invalidateSearchCache(orgId);
+    return updated;
   }
 
   async delete(
@@ -53,5 +58,6 @@ export class CommentsService {
       throw new ForbiddenError('You can only delete your own comments');
     }
     await this.commentsRepository.delete(id);
+    await invalidateSearchCache(orgId);
   }
 }

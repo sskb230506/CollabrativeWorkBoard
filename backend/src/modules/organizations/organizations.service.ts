@@ -4,6 +4,7 @@ import { ConflictError, NotFoundError, ForbiddenError, BadRequestError } from '@
 import { OrganizationRole } from '@appTypes';
 import { enqueueEmail } from '@queue/queues';
 import { Organization, OrganizationMember, Invitation } from '@prisma/client';
+import { invalidateSearchCache } from '@lib/redis';
 
 export class OrganizationsService {
   constructor(private readonly orgRepo: OrganizationsRepository) {}
@@ -165,12 +166,14 @@ export class OrganizationsService {
       throw new ConflictError('You are already a member of this organization');
     }
 
-    return this.orgRepo.acceptInvitation(
+    const member = await this.orgRepo.acceptInvitation(
       invitation.id,
       userId,
       invitation.organizationId,
       invitation.role as OrganizationRole,
     );
+    await invalidateSearchCache(invitation.organizationId);
+    return member;
   }
 
   /**
@@ -200,6 +203,7 @@ export class OrganizationsService {
         }
       }
       await this.orgRepo.removeMember(organizationId, targetUserId);
+      await invalidateSearchCache(organizationId);
       return;
     }
 
@@ -230,6 +234,7 @@ export class OrganizationsService {
     }
 
     await this.orgRepo.removeMember(organizationId, targetUserId);
+    await invalidateSearchCache(organizationId);
   }
 
   /**
